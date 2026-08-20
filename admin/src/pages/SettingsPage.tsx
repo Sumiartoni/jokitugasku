@@ -109,6 +109,7 @@ export function SettingsPage() {
     setTestGroqStatus({ loading: true, msg: 'Menghubungkan ke Groq API...', type: 'idle' });
 
     try {
+      const selectedModel = formData.groqDefaultModel || 'llama-3.1-8b-instant';
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -116,7 +117,7 @@ export function SettingsPage() {
           'Authorization': `Bearer ${key}`
         },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: selectedModel,
           messages: [{ role: 'user', content: 'Ping: JokiTugasKu AI check. Jawab dengan 1 kata: Aktif.' }],
           max_tokens: 10
         })
@@ -440,9 +441,11 @@ export function SettingsPage() {
                       onChange={(e) => handleChange('groqDefaultModel', e.target.value)}
                       className="w-full p-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-ink-primary bg-white font-mono"
                     >
-                      <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (Rekomendasi Utama)</option>
-                      <option value="mixtral-8x7b-32768">mixtral-8x7b-32768 (Konteks Panjang)</option>
-                      <option value="gemma2-9b-it">gemma2-9b-it (Ringan & Cepat)</option>
+                      <option value="llama-3.1-70b-versatile">llama-3.1-70b-versatile (Llama 3.1 70B - Kualitas Tinggi)</option>
+                      <option value="llama-3.1-8b-instant">llama-3.1-8b-instant (Llama 3.1 8B - Super Cepat)</option>
+                      <option value="mixtral-8x7b-32768">mixtral-8x7b-32768 (Konteks Panjang 32k)</option>
+                      <option value="llama3-70b-8192">llama3-70b-8192 (Llama 3 70B Standar)</option>
+                      <option value="gemma2-9b-it">gemma2-9b-it (Google Gemma 2 9B)</option>
                     </select>
                   </div>
 

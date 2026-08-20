@@ -207,9 +207,10 @@ export function AiBlogWriterPage() {
               onChange={(e) => setSelectedModel(e.target.value)}
               className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white font-semibold text-xs text-brand-700"
             >
-              <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Versatile - Rekomendasi)</option>
-              <option value="llama3-70b-8192">Llama 3 70B (8k)</option>
+              <option value="llama-3.1-70b-versatile">Llama 3.1 70B (Versatile - Rekomendasi)</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B (Super Cepat)</option>
               <option value="mixtral-8x7b-32768">Mixtral 8x7B (32k)</option>
+              <option value="llama3-70b-8192">Llama 3 70B (8k)</option>
               <option value="gemma2-9b-it">Gemma 2 9B</option>
             </select>
           </div>

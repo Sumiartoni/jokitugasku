@@ -194,9 +194,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const attempts = getLoginAttempts();
     if (attempts.lockedUntil && Date.now() < attempts.lockedUntil) {
       const remainingMinutes = Math.ceil((attempts.lockedUntil - Date.now()) / (60 * 1000));
-      return { 
-        success: false, 
-        error: `Terlalu banyak percobaan gagal. Akun dikunci sementara demi keamanan. Coba lagi dalam ${remainingMinutes} menit.` 
+      return {
+        success: false,
+        error: `Terlalu banyak percobaan gagal. Akun dikunci sementara demi keamanan. Coba lagi dalam ${remainingMinutes} menit.`
       };
     }
 
@@ -217,9 +217,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!foundUser.password || !verifyPassword(cleanPass, foundUser.password)) {
       const attemptRes = recordFailedAttempt();
       if (attemptRes.locked) {
-        return { 
-          success: false, 
-          error: `Terlalu banyak percobaan gagal. Sistem keamanan mengunci login selama 15 menit.` 
+        return {
+          success: false,
+          error: `Terlalu banyak percobaan gagal. Sistem keamanan mengunci login selama 15 menit.`
         };
       }
       return { success: false, error: 'Email atau password yang Anda masukkan tidak sesuai.' };
@@ -291,7 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Update existing user
   const updateUser = useCallback((id: string, updates: Partial<UserAccount>): { success: boolean; error?: string } => {
     const currentUsers = getStoredUsers();
-    
+
     if (updates.email) {
       const emailLower = updates.email.trim().toLowerCase();
       if (currentUsers.some(u => u.id !== id && u.email.toLowerCase() === emailLower)) {
@@ -347,12 +347,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated: !!user, 
-      isLoading, 
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
+      isLoading,
       usersList,
-      login, 
+      login,
       logout,
       addUser,
       updateUser,
