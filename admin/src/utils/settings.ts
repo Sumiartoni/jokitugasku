@@ -336,9 +336,12 @@ export async function sendEmailNotification(params: {
         providerUsed: 'Resend API'
       };
     } catch (e: any) {
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       return {
         success: false,
-        message: `Gagal mengirim email via Resend: ${e.message}`,
+        message: isLocal 
+          ? `Email tidak dapat dikirim dari localhost (CORS). Deploy ke VPS terlebih dahulu, lalu test dari admin.jokitugasku.id/settings`
+          : `Gagal mengirim email via Resend: ${e.message}`,
         providerUsed: 'Resend API'
       };
     }
@@ -390,9 +393,12 @@ export async function sendEmailNotification(params: {
         providerUsed: 'Brevo API'
       };
     } catch (e: any) {
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       return {
         success: false,
-        message: `Gagal mengirim email via Brevo: ${e.message}`,
+        message: isLocal
+          ? `Email tidak dapat dikirim dari localhost (CORS). Deploy ke VPS terlebih dahulu, lalu test dari admin.jokitugasku.id/settings`
+          : `Gagal mengirim email via Brevo: ${e.message}`,
         providerUsed: 'Brevo API'
       };
     }

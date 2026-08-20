@@ -106,53 +106,87 @@ export function SettingsPage() {
       return;
     }
 
-    setTestGroqStatus({ loading: true, msg: 'Menghubungkan ke Groq API...', type: 'idle' });
+    if (!key.startsWith('gsk_')) {
+      setTestGroqStatus({
+        loading: false,
+        msg: 'Format API Key salah. Key Groq harus diawali dengan "gsk_".',
+        type: 'error'
+      });
+      return;
+    }
+
+    setTestGroqStatus({ loading: true, msg: 'Memvalidasi API Key...', type: 'idle' });
 
     try {
-      const selectedModel = formData.groqDefaultModel || 'llama-3.3-70b-versatile';
-      let response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      // Step 1: Validate the API key by listing available models (FREE - no quota used)
+      const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { 'Authorization': `Bearer ${key}` }
+      });
+
+      if (!modelsRes.ok) {
+        const errData = await modelsRes.json().catch(() => ({}));
+        setTestGroqStatus({
+          loading: false,
+          msg: `API Key tidak valid: ${errData.error?.message || 'Key expired atau salah'}. Buat key baru di console.groq.com/keys`,
+          type: 'error'
+        });
+        return;
+      }
+
+      const modelsData = await modelsRes.json();
+      const availableIds: string[] = (modelsData.data || []).map((m: any) => m.id);
+
+      // Step 2: Pick the best model from what's actually available
+      const preferred = [
+        formData.groqDefaultModel,
+        'llama-3.3-70b-versatile',
+        'deepseek-r1-distill-llama-70b',
+        'llama-3.1-8b-instant',
+        'mixtral-8x7b-32768',
+        'gemma2-9b-it'
+      ];
+      const modelToUse = preferred.find(m => availableIds.includes(m)) || availableIds[0];
+
+      if (!modelToUse) {
+        setTestGroqStatus({
+          loading: false,
+          msg: 'API Key valid, tetapi tidak ada model AI yang tersedia di akun Anda.',
+          type: 'error'
+        });
+        return;
+      }
+
+      // Step 3: Test a single chat completion with the chosen model
+      setTestGroqStatus({ loading: true, msg: `API Key valid! Menguji model ${modelToUse}...`, type: 'idle' });
+
+      const chatRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${key}`
         },
         body: JSON.stringify({
-          model: selectedModel,
-          messages: [{ role: 'user', content: 'Ping: JokiTugasKu AI check. Jawab dengan 1 kata: Aktif.' }],
-          max_tokens: 10
+          model: modelToUse,
+          messages: [{ role: 'user', content: 'Jawab 1 kata: Aktif' }],
+          max_tokens: 5
         })
       });
 
-      // If the selected model failed due to model deprecation, auto-try with llama-3.1-8b-instant
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (errorData.error?.code === 'model_decommissioned' || errorData.error?.message?.includes('decommissioned')) {
-          response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${key}`
-            },
-            body: JSON.stringify({
-              model: 'llama-3.1-8b-instant',
-              messages: [{ role: 'user', content: 'Ping: JokiTugasKu AI check. Jawab dengan 1 kata: Aktif.' }],
-              max_tokens: 10
-            })
-          });
-        }
-      }
-
-      if (response.ok) {
+      if (chatRes.ok) {
         setTestGroqStatus({
           loading: false,
-          msg: 'Koneksi Berhasil! API Key Groq valid dan siap meng-generate artikel blog.',
+          msg: `✅ Koneksi Berhasil! Model aktif: ${modelToUse}. Siap generate artikel.`,
           type: 'success'
         });
+        // Auto-set the working model
+        if (modelToUse !== formData.groqDefaultModel) {
+          handleChange('groqDefaultModel', modelToUse);
+        }
       } else {
-        const errorData = await response.json().catch(() => ({}));
+        const errData = await chatRes.json().catch(() => ({}));
         setTestGroqStatus({
           loading: false,
-          msg: `Koneksi Gagal: ${errorData.error?.message || 'API Key tidak valid atau kuota habis.'}`,
+          msg: `API Key valid, tapi model ${modelToUse} error: ${errData.error?.message || 'Unknown'}`,
           type: 'error'
         });
       }
