@@ -33,16 +33,7 @@ interface LeadItem {
   date: string;
 }
 
-function generateDynamicInitialLeads(): LeadItem[] {
-  const now = Date.now();
-  return [
-    { id: 'lead-1', wa: '6281398214432', name: 'Rian A.', institution: 'FEB Unpad', service: 'Joki Makalah', source: 'Layanan Makalah', status: 'NEW', notes: 'Makalah Manajemen Pemasaran 15 hal, deadline 3 hari.', date: formatShortDateTime(new Date(now - 15 * 60 * 1000)) },
-    { id: 'lead-2', wa: '6285711029981', name: 'Dimas S.', institution: 'SMK Telkom Malang', service: 'Joki Tugas SMK', source: 'Homepage CTA', status: 'QUALIFIED', notes: 'Tugas coding PHP CRUD & laporan bengkel.', date: formatShortDateTime(new Date(now - 45 * 60 * 1000)) },
-    { id: 'lead-3', wa: '6281244517721', name: 'Nadia P.', institution: 'Teknik ITS', service: 'Joki Proposal', source: 'Layanan Proposal', status: 'CONVERTED', notes: 'Proposal BAB 1-3 Sempro, sudah DP 50%, task dibuat.', date: formatShortDateTime(new Date(now - 2 * 3600 * 1000)) },
-    { id: 'lead-4', wa: '6289677823314', name: 'Alif K.', institution: 'Farmasi UI', service: 'Joki Laporan', source: 'Homepage Modal', status: 'CONTACTED', notes: 'Tanya estimasi laporan biokimia kinetika enzim.', date: formatShortDateTime(new Date(now - 5 * 3600 * 1000)) },
-    { id: 'lead-5', wa: '6282133445566', name: 'Siti W.', institution: 'Universitas Brawijaya', service: 'Joki Skripsi', source: 'Layanan Skripsi', status: 'QUALIFIED', notes: 'Olah data SPSS regresi berganda 100 responden.', date: formatShortDateTime(new Date(now - 22 * 3600 * 1000)) },
-  ];
-}
+import { supabase } from '@/lib/supabase';
 
 export function CrmLeadsPage() {
   const navigate = useNavigate();
@@ -55,14 +46,62 @@ export function CrmLeadsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [leads, setLeads] = useState<LeadItem[]>(() => {
-    const saved = localStorage.getItem('jt_crm_leads');
-    if (saved) {
-      try { return JSON.parse(saved); } catch { return generateDynamicInitialLeads(); }
+    try {
+      const saved = localStorage.getItem('jt_crm_leads');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {
+      // Fallback
     }
-    const initial = generateDynamicInitialLeads();
-    localStorage.setItem('jt_crm_leads', JSON.stringify(initial));
-    return initial;
+    return [];
   });
+
+  // Fetch real leads from Supabase on mount
+  useEffect(() => {
+    if (!supabase) return;
+
+    const fetchLeads = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('crm_leads')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          const formatted: LeadItem[] = data.map((d: any) => ({
+            id: d.id,
+            wa: d.wa,
+            name: d.name,
+            institution: d.institution || '',
+            service: d.service,
+            source: d.source || 'Website',
+            status: d.status || 'NEW',
+            notes: d.notes || '',
+            date: formatShortDateTime(new Date(d.created_at || Date.now())),
+          }));
+          setLeads(formatted);
+          localStorage.setItem('jt_crm_leads', JSON.stringify(formatted));
+        }
+      } catch (e) {
+        console.error('Supabase fetch leads error', e);
+      }
+    };
+
+    fetchLeads();
+
+    // Subscribe to realtime leads
+    const subscription = supabase
+      .channel('crm_leads_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_leads' }, () => {
+        fetchLeads();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
 
   // Modal States
   const [addModalOpen, setAddModalOpen] = useState(false);

@@ -65,7 +65,7 @@ function verifyPassword(plain: string, stored: string): boolean {
 }
 
 /**
- * Default seeded accounts for initial setup.
+ * Default seeded accounts for initial setup (Super Admin & CS Operator only).
  * Passwords are pre-hashed with bcryptjs (10 rounds).
  */
 export const DEFAULT_ACCOUNTS: UserAccount[] = [
@@ -86,36 +86,6 @@ export const DEFAULT_ACCOUNTS: UserAccount[] = [
     role: 'ADMIN_OPERATOR',
     status: 'ACTIVE',
     createdAt: '2026-08-01',
-  },
-  {
-    id: 'usr-003',
-    name: 'Penjoki Budi Santoso',
-    email: 'worker@jokitugasku.id',
-    password: hashPassword('Worker@JT2026!'),
-    role: 'WORKER',
-    specialization: 'Makalah & Paper Soshum',
-    status: 'ACTIVE',
-    createdAt: '2026-08-05',
-  },
-  {
-    id: 'usr-004',
-    name: 'Dina Rahmawati (Desain & PPT)',
-    email: 'dina.designer@gmail.com',
-    password: hashPassword('Worker@JT2026!'),
-    role: 'WORKER',
-    specialization: 'Slide PPT & Desain Presentasi',
-    status: 'ACTIVE',
-    createdAt: '2026-08-10',
-  },
-  {
-    id: 'usr-005',
-    name: 'Fauzi Rahmat (Sains & Coding)',
-    email: 'fauzi.penjoki@gmail.com',
-    password: hashPassword('Worker@JT2026!'),
-    role: 'WORKER',
-    specialization: 'Laporan Praktikum, Skripsi SPSS & Coding',
-    status: 'ACTIVE',
-    createdAt: '2026-08-12',
   },
 ];
 

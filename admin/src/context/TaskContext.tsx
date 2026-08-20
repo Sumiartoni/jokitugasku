@@ -19,105 +19,6 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 const TASKS_STORAGE_KEY = 'jt_tasks_pipeline';
 
-/**
- * Generate dynamically synchronized initial tasks based on today's real date
- */
-export function generateDynamicInitialTasks(): TaskEntity[] {
-  const currentYear = new Date().getFullYear();
-
-  return [
-    {
-      id: 'task-001',
-      task_code: `JT-${currentYear}-081`,
-      customer_name: 'Rian A. (Mahasiswa Unpad)',
-      customer_phone: '+62 813-9821-4432',
-      service_title: 'Bimbingan & Olah Data Skripsi',
-      title: 'Olah data SPSS, Uji Asumsi Klasik, & Regresi Linear Berganda',
-      brief: 'Data Excel 100 responden sudah terlampir. Kerjakan output SPSS, uji normalitas Shapiro-Wilk/Kolmogorov-Smirnov, heteroskedastisitas scatterplot, dan interpretasi tabel R-Square.',
-      deadline: getRelativeDeadline(0, '20:00'), // Hari ini
-      priority: 'URGENT',
-      status: 'IN_PROGRESS',
-      price: 'Rp 450.000',
-      worker_id: 'usr-003',
-      worker_email: 'worker@jokitugasku.id',
-      worker_name: 'Penjoki Budi Santoso',
-      revision_count: 0,
-      created_at: formatShortDateTime(new Date(Date.now() - 4 * 3600 * 1000)),
-    },
-    {
-      id: 'task-002',
-      task_code: `JT-${currentYear}-082`,
-      customer_name: 'Nadia P. (Mahasiswa ITS)',
-      customer_phone: '+62 812-4451-7721',
-      service_title: 'Joki PPT & Slide Presentasi',
-      title: 'Slide Sempro 20 Hal Tema Artificial Intelligence',
-      brief: 'Format slide 16:9 modern minimalist, warna dominan biru navy & violet. Sertakan speaker notes di setiap slide untuk persiapan tanya jawab dosen penguji.',
-      deadline: getRelativeDeadline(1, '12:00'), // Besok
-      priority: 'NORMAL',
-      status: 'REVIEW',
-      price: 'Rp 180.000',
-      worker_id: 'usr-004',
-      worker_email: 'dina.designer@gmail.com',
-      worker_name: 'Dina Rahmawati',
-      revision_count: 0,
-      submission: {
-        notes: 'Draft 20 slide sudah selesai. Desain menggunakan Canva Pro & master PPTX terlampir di Google Drive.',
-        driveLink: 'https://drive.google.com/drive/folders/1aB2cD3eF4gH5iJ6kL7mN8oP-JT-082',
-        fileName: 'Slide_Sempro_AI_Nadia_ITS_v1.pptx',
-        fileSize: '14.2 MB',
-        submittedAt: formatShortDateTime(new Date(Date.now() - 1.5 * 3600 * 1000)) + ' WIB',
-        submittedBy: 'dina.designer@gmail.com'
-      },
-      created_at: formatShortDateTime(new Date(Date.now() - 24 * 3600 * 1000)),
-    },
-    {
-      id: 'task-003',
-      task_code: `JT-${currentYear}-083`,
-      customer_name: 'Dimas S. (Siswa SMK Malang)',
-      customer_phone: '+62 857-1102-9981',
-      service_title: 'Joki Laporan PKL & Magang',
-      title: 'Laporan PKL Bengkel Motor & Modul Perawatan Berkala',
-      brief: 'Laporan PKL 35 halaman BAB 1-4 sesuai panduan SMK Telkom. Dilengkapi diagram alur kerja dan foto dokumentasi kegiatan magang.',
-      deadline: getRelativeDeadline(2, '18:00'), // +2 Hari
-      priority: 'HIGH',
-      status: 'REVISION',
-      price: 'Rp 300.000',
-      worker_id: 'usr-003',
-      worker_email: 'worker@jokitugasku.id',
-      worker_name: 'Penjoki Budi Santoso',
-      revision_count: 1,
-      admin_feedback: 'Catatan Dosen Penguji: Bab 3 tambahkan analisis penyebab kerusakan sistem injeksi & lampirkan logbook harian.',
-      submission: {
-        notes: 'Draft awal Bab 1-4 sudah disusun sesuai format.',
-        driveLink: 'https://drive.google.com/drive/folders/2bC3dE4fG5hI6jK7lM8nO9pQ-JT-083',
-        fileName: 'Laporan_PKL_Dimas_v1.docx',
-        fileSize: '6.8 MB',
-        submittedAt: formatShortDateTime(new Date(Date.now() - 12 * 3600 * 1000)) + ' WIB',
-        submittedBy: 'worker@jokitugasku.id'
-      },
-      created_at: formatShortDateTime(new Date(Date.now() - 48 * 3600 * 1000)),
-    },
-    {
-      id: 'task-004',
-      task_code: `JT-${currentYear}-084`,
-      customer_name: 'Alif K. (Mahasiswa Farmasi UI)',
-      customer_phone: '+62 896-7782-3314',
-      service_title: 'Joki Laporan Praktikum',
-      title: 'Laporan Praktikum Biokimia Kinetika Enzim Katalase',
-      brief: 'Laporan 12 halaman lengkap dengan grafik perhitungan laju reaksi Michaelis-Menten dan pembahasan jurnal ilmiah berbahasa Inggris.',
-      deadline: getRelativeDeadline(3, '23:59'), // +3 Hari
-      priority: 'NORMAL',
-      status: 'ASSIGNED',
-      price: 'Rp 220.000',
-      worker_id: 'usr-005',
-      worker_email: 'fauzi.penjoki@gmail.com',
-      worker_name: 'Fauzi Rahmat',
-      revision_count: 0,
-      created_at: formatShortDateTime(new Date(Date.now() - 6 * 3600 * 1000)),
-    },
-  ];
-}
-
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<TaskEntity[]>(() => {
     try {
@@ -128,10 +29,43 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error('Failed to load tasks', e);
     }
-    const initial = generateDynamicInitialTasks();
-    localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(initial));
-    return initial;
+    return [];
   });
+
+  // Fetch real tasks from Supabase on mount
+  useEffect(() => {
+    if (!supabase) return;
+
+    const fetchTasks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          setTasks(data as any);
+          localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(data));
+        }
+      } catch (e) {
+        console.error('Supabase fetch tasks error', e);
+      }
+    };
+
+    fetchTasks();
+
+    // Subscribe to realtime updates
+    const subscription = supabase
+      .channel('tasks_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        fetchTasks();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
 
   const saveTasks = (newTasks: TaskEntity[]) => {
     setTasks(newTasks);
