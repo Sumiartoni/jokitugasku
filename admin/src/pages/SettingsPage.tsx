@@ -137,6 +137,11 @@ export function SettingsPage() {
       const availableIds: string[] = (modelsData.data || []).map((m: any) => m.id);
 
       // Step 2: Pick the best model from what's actually available
+      // Filter out non-chat models (whisper, tts, playai, etc.)
+      const chatModels = availableIds.filter((id: string) => 
+        !id.includes('whisper') && !id.includes('tts') && !id.includes('playai') && !id.includes('distil-')
+      );
+
       const preferred = [
         formData.groqDefaultModel,
         'llama-3.3-70b-versatile',
@@ -145,7 +150,7 @@ export function SettingsPage() {
         'mixtral-8x7b-32768',
         'gemma2-9b-it'
       ];
-      const modelToUse = preferred.find(m => availableIds.includes(m)) || availableIds[0];
+      const modelToUse = preferred.find(m => chatModels.includes(m)) || chatModels[0];
 
       if (!modelToUse) {
         setTestGroqStatus({
