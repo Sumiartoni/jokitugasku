@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { TaskEntity, TaskStatus, TaskSubmission } from '@/types/database';
 import { sendEmailNotification, getAppSettings } from '@/utils/settings';
 import { getRelativeDeadline, formatShortDateTime } from '@/utils/date';
+import { supabase } from '@/lib/supabase';
 
 interface TaskContextType {
   tasks: TaskEntity[];
@@ -34,11 +35,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch real tasks from Supabase on mount
   useEffect(() => {
-    if (!supabase) return;
+    const client = supabase;
+    if (!client) return;
 
     const fetchTasks = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from('tasks')
           .select('*')
           .order('created_at', { ascending: false });
@@ -55,7 +57,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     fetchTasks();
 
     // Subscribe to realtime updates
-    const subscription = supabase
+    const subscription = client
       .channel('tasks_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
         fetchTasks();
@@ -63,7 +65,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(subscription);
+      client.removeChannel(subscription);
     };
   }, []);
 
@@ -212,8 +214,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const resetSampleTasks = useCallback(() => {
-    const initial = generateDynamicInitialTasks();
-    saveTasks(initial);
+    saveTasks([]);
   }, []);
 
   return (

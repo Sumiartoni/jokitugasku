@@ -59,11 +59,12 @@ export function CrmLeadsPage() {
 
   // Fetch real leads from Supabase on mount
   useEffect(() => {
-    if (!supabase) return;
+    const client = supabase;
+    if (!client) return;
 
     const fetchLeads = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from('crm_leads')
           .select('*')
           .order('created_at', { ascending: false });
@@ -91,7 +92,7 @@ export function CrmLeadsPage() {
     fetchLeads();
 
     // Subscribe to realtime leads
-    const subscription = supabase
+    const subscription = client
       .channel('crm_leads_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_leads' }, () => {
         fetchLeads();
@@ -99,7 +100,7 @@ export function CrmLeadsPage() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(subscription);
+      client.removeChannel(subscription);
     };
   }, []);
 
