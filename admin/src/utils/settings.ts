@@ -302,7 +302,11 @@ export async function sendEmailNotification(params: {
     }
 
     try {
-      const res = await fetch('https://api.resend.com/emails', {
+      const endpoint = window.location.hostname !== 'localhost'
+        ? '/api/resend/emails'
+        : 'https://api.resend.com/emails';
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${settings.resendApiKey}`,
@@ -351,7 +355,11 @@ export async function sendEmailNotification(params: {
     }
 
     try {
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      const endpoint = window.location.hostname !== 'localhost'
+        ? '/api/brevo/v3/smtp/email'
+        : 'https://api.brevo.com/v3/smtp/email';
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'api-key': settings.brevoApiKey,

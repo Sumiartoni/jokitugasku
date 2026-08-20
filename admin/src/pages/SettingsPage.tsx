@@ -109,8 +109,8 @@ export function SettingsPage() {
     setTestGroqStatus({ loading: true, msg: 'Menghubungkan ke Groq API...', type: 'idle' });
 
     try {
-      const selectedModel = formData.groqDefaultModel || 'llama-3.1-8b-instant';
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const selectedModel = formData.groqDefaultModel || 'llama-3.3-70b-versatile';
+      let response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,6 +122,25 @@ export function SettingsPage() {
           max_tokens: 10
         })
       });
+
+      // If the selected model failed due to model deprecation, auto-try with llama-3.1-8b-instant
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.error?.code === 'model_decommissioned' || errorData.error?.message?.includes('decommissioned')) {
+          response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({
+              model: 'llama-3.1-8b-instant',
+              messages: [{ role: 'user', content: 'Ping: JokiTugasKu AI check. Jawab dengan 1 kata: Aktif.' }],
+              max_tokens: 10
+            })
+          });
+        }
+      }
 
       if (response.ok) {
         setTestGroqStatus({
