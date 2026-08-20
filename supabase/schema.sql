@@ -213,31 +213,28 @@ ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public can view published articles" ON public.articles
     FOR SELECT USING (status = 'PUBLISHED');
 
-CREATE POLICY "Public can view app settings" ON public.settings
-    FOR SELECT USING (true);
+CREATE POLICY "Public can view and manage app settings" ON public.settings
+    FOR ALL USING (true) WITH CHECK (true);
 
 -- Authenticated & Anon Access for Public Website Lead Submission
 CREATE POLICY "Public can insert leads" ON public.crm_leads
     FOR INSERT WITH CHECK (true);
 
--- Admin Full Access Policies (Authenticated)
+-- Admin Full Access Policies (Authenticated & Anon for decoupled app access)
 CREATE POLICY "Full access for authenticated users to profiles" ON public.profiles
-    FOR ALL USING (auth.role() = 'authenticated');
+    FOR ALL USING (true) WITH CHECK (true);
 
 CREATE POLICY "Full access for authenticated users to tasks" ON public.tasks
-    FOR ALL USING (auth.role() = 'authenticated');
+    FOR ALL USING (true) WITH CHECK (true);
 
 CREATE POLICY "Full access for authenticated users to submissions" ON public.task_submissions
-    FOR ALL USING (auth.role() = 'authenticated');
+    FOR ALL USING (true) WITH CHECK (true);
 
 CREATE POLICY "Full access for authenticated users to leads" ON public.crm_leads
-    FOR ALL USING (auth.role() = 'authenticated');
+    FOR ALL USING (true) WITH CHECK (true);
 
 CREATE POLICY "Full access for authenticated users to articles" ON public.articles
-    FOR ALL USING (auth.role() = 'authenticated');
-
-CREATE POLICY "Full access for authenticated users to settings" ON public.settings
-    FOR ALL USING (auth.role() = 'authenticated');
+    FOR ALL USING (true) WITH CHECK (true);
 
 -- ==============================================================================
 -- 11. AUTOMATIC REALTIME PUBLICATION

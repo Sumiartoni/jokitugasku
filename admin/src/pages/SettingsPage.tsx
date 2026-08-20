@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { 
   getAppSettings, 
+  fetchSettingsFromSupabase,
   saveAppSettings, 
   AppSettings, 
   sendEmailNotification 
@@ -39,12 +40,15 @@ export function SettingsPage() {
   const { tasks, clearAllTasks, resetSampleTasks } = useTasks();
   const { usersList, clearDemoWorkers, resetDemoAccounts } = useAuth();
 
-  useEffect(() => {
-    document.title = 'Settings & Integrasi API - JokiTugasKu Admin';
-  }, []);
-
   const [activeTab, setActiveTab] = useState<'whatsapp' | 'groq' | 'email' | 'data'>('whatsapp');
   const [formData, setFormData] = useState<AppSettings>(getAppSettings());
+
+  useEffect(() => {
+    document.title = 'Settings & Integrasi API - JokiTugasKu Admin';
+    fetchSettingsFromSupabase().then((liveSettings) => {
+      setFormData(liveSettings);
+    });
+  }, []);
   
   // Show / Hide Secret Toggles
   const [showGroqKey, setShowGroqKey] = useState(false);

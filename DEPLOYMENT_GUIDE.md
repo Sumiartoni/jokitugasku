@@ -45,7 +45,7 @@ Di dalam folder `~/jokitugasku`:
    ```
    Isi dengan kredensial Supabase Anda:
    ```ini
-   VITE_SUPABASE_URL=https://harmnnijndrmzmxvwjbj.supabase.co
+   VITE_SUPABASE_URL=https://harmnrijndrnzmxvwjbj.supabase.co
    VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhcm1ucmlqbmRybnpteHZ3amJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyMTY2MDQsImV4cCI6MjEwMjc5MjYwNH0.P5-x-2FvnduVj5L10ZnjeOtkPTt8q05lANXW14YXB2w
    VITE_SITE_URL=https://jokitugasku.id
    VITE_ADMIN_URL=https://admin.jokitugasku.id
@@ -58,7 +58,7 @@ Di dalam folder `~/jokitugasku`:
    ```
    Isi dengan:
    ```ini
-   VITE_SUPABASE_URL=https://harmnnijndrmzmxvwjbj.supabase.co
+   VITE_SUPABASE_URL=https://harmnrijndrnzmxvwjbj.supabase.co
    VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhcm1ucmlqbmRybnpteHZ3amJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyMTY2MDQsImV4cCI6MjEwMjc5MjYwNH0.P5-x-2FvnduVj5L10ZnjeOtkPTt8q05lANXW14YXB2w
    VITE_PUBLIC_URL=https://jokitugasku.id
    VITE_ADMIN_URL=https://admin.jokitugasku.id
