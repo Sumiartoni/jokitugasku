@@ -53,7 +53,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   // Groq AI
   groqApiKey: '',
-  groqDefaultModel: 'llama-3.1-8b-instant',
+  groqDefaultModel: 'llama-3.3-70b-versatile',
   groqTemperature: 0.7,
   groqMaxTokens: 3500,
   groqSystemPrompt: 'Anda adalah pakar penulisan artikel akademik, edukasi, dan SEO spesialis brand JokiTugasKu. Tuliskan artikel komprehensif, terstruktur, berbasis riset, faktual, dan ramah SEO dengan gaya bahasa bahasa Indonesia formal namun mudah dipahami oleh mahasiswa dan pelajar.',
