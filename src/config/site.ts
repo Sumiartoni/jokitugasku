@@ -25,10 +25,10 @@ export const defaultSiteConfig: SiteConfig = {
   domain: 'https://jokitugasku.id',
   tagline: 'Jasa Joki Tugas Kuliah & Sekolah Terpercaya',
   description: 'Solusi terpercaya untuk pengerjaan tugas kuliah, makalah, laporan PKL, proposal, slide PPT, dan skripsi dengan proses transparan dan komunikasi langsung via WhatsApp.',
-  whatsappNumber: '6281234567890',
-  whatsappDisplay: '+62 812-3456-7890',
+  whatsappNumber: '62895320603421',
+  whatsappDisplay: '0895-3206-03421',
   emailPlaceholder: 'halo@jokitugasku.id',
-  operatingHours: 'Setiap Hari: 08.00 - 22.00 WIB (Fast Response)',
+  operatingHours: 'Setiap Hari: 08.00 - 23.00 WIB (Fast Response)',
   socials: {
     instagram: 'https://instagram.com/jokitugasku.id',
     tiktok: 'https://tiktok.com/@jokitugasku.id',

@@ -33,7 +33,7 @@ export function HomePage() {
     "image": "https://jokitugasku.id/logo.png",
     "@id": "https://jokitugasku.id/#service",
     "url": "https://jokitugasku.id",
-    "telephone": "+6281234567890",
+    "telephone": "+62895320603421",
     "priceRange": "Rp 30.000 - Rp 500.000",
     "address": {
       "@type": "PostalAddress",

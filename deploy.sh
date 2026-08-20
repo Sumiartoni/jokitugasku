@@ -37,6 +37,14 @@ if [ ! -f admin/.env ]; then
     fi
 fi
 
+# Auto-fix URL typo in existing .env files if present
+if [ -f .env ]; then
+    sed -i 's/harmnnijndrmzmxvwjbj/harmnrijndrnzmxvwjbj/g' .env
+fi
+if [ -f admin/.env ]; then
+    sed -i 's/harmnnijndrmzmxvwjbj/harmnrijndrnzmxvwjbj/g' admin/.env
+fi
+
 # 3. Install dependencies
 echo "📦 [3/5] Menginstall dependencies..."
 npm install

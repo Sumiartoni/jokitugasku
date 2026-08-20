@@ -137,9 +137,9 @@ INSERT INTO public.settings (key, value)
 VALUES (
     'app_settings',
     '{
-        "whatsappNumber": "6281234567890",
-        "whatsappDisplay": "+62 812-3456-7890",
-        "operatingHours": "Setiap Hari: 08.00 - 22.00 WIB (Fast Response)",
+        "whatsappNumber": "62895320603421",
+        "whatsappDisplay": "0895-3206-03421",
+        "operatingHours": "Setiap Hari: 08.00 - 23.00 WIB (Fast Response)",
         "contactEmail": "halo@jokitugasku.id",
         "groqApiKey": "",
         "groqDefaultModel": "llama-3.3-70b-versatile",
