@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import bcrypt from 'bcryptjs';
 
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN_OPERATOR' | 'WORKER';
 
@@ -43,14 +44,36 @@ const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes lockout
 const ATTEMPTS_KEY = 'jt_login_attempts';
 
 /**
- * Default seeded accounts for demo & initial setup
+ * Hash a plaintext password using bcryptjs (10 salt rounds).
+ */
+function hashPassword(plain: string): string {
+  return bcrypt.hashSync(plain, 10);
+}
+
+/**
+ * Verify a plaintext password against a stored hash.
+ * Also supports legacy plaintext passwords for backward compatibility
+ * during migration (if hash doesn't start with '$2').
+ */
+function verifyPassword(plain: string, stored: string): boolean {
+  // If stored password is already a bcrypt hash, use compareSync
+  if (stored.startsWith('$2')) {
+    return bcrypt.compareSync(plain, stored);
+  }
+  // Legacy fallback: plaintext comparison (for pre-migration accounts)
+  return stored === plain;
+}
+
+/**
+ * Default seeded accounts for initial setup.
+ * Passwords are pre-hashed with bcryptjs (10 rounds).
  */
 export const DEFAULT_ACCOUNTS: UserAccount[] = [
   {
     id: 'usr-001',
     name: 'Super Admin',
     email: 'admin@jokitugasku.id',
-    password: 'Admin@JT2026!',
+    password: hashPassword('Admin@JT2026!'),
     role: 'SUPER_ADMIN',
     status: 'ACTIVE',
     createdAt: '2026-08-01',
@@ -59,7 +82,7 @@ export const DEFAULT_ACCOUNTS: UserAccount[] = [
     id: 'usr-002',
     name: 'CS Operator',
     email: 'operator@jokitugasku.id',
-    password: 'Operator@JT2026!',
+    password: hashPassword('Operator@JT2026!'),
     role: 'ADMIN_OPERATOR',
     status: 'ACTIVE',
     createdAt: '2026-08-01',
@@ -68,7 +91,7 @@ export const DEFAULT_ACCOUNTS: UserAccount[] = [
     id: 'usr-003',
     name: 'Penjoki Budi Santoso',
     email: 'worker@jokitugasku.id',
-    password: 'Worker@JT2026!',
+    password: hashPassword('Worker@JT2026!'),
     role: 'WORKER',
     specialization: 'Makalah & Paper Soshum',
     status: 'ACTIVE',
@@ -78,7 +101,7 @@ export const DEFAULT_ACCOUNTS: UserAccount[] = [
     id: 'usr-004',
     name: 'Dina Rahmawati (Desain & PPT)',
     email: 'dina.designer@gmail.com',
-    password: 'Worker@JT2026!',
+    password: hashPassword('Worker@JT2026!'),
     role: 'WORKER',
     specialization: 'Slide PPT & Desain Presentasi',
     status: 'ACTIVE',
@@ -88,7 +111,7 @@ export const DEFAULT_ACCOUNTS: UserAccount[] = [
     id: 'usr-005',
     name: 'Fauzi Rahmat (Sains & Coding)',
     email: 'fauzi.penjoki@gmail.com',
-    password: 'Worker@JT2026!',
+    password: hashPassword('Worker@JT2026!'),
     role: 'WORKER',
     specialization: 'Laporan Praktikum, Skripsi SPSS & Coding',
     status: 'ACTIVE',
@@ -131,11 +154,20 @@ function getStoredSession(): { user: AuthUser; expiresAt: number } | null {
   }
 }
 
+/**
+ * Brute-force lockout counter stored in localStorage (persists across tabs/sessions).
+ */
 function getLoginAttempts(): { count: number; lockedUntil: number | null } {
   try {
-    const raw = sessionStorage.getItem(ATTEMPTS_KEY);
+    const raw = localStorage.getItem(ATTEMPTS_KEY);
     if (!raw) return { count: 0, lockedUntil: null };
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    // Auto-clear expired lockouts
+    if (parsed.lockedUntil && Date.now() >= parsed.lockedUntil) {
+      localStorage.removeItem(ATTEMPTS_KEY);
+      return { count: 0, lockedUntil: null };
+    }
+    return parsed;
   } catch {
     return { count: 0, lockedUntil: null };
   }
@@ -147,16 +179,16 @@ function recordFailedAttempt(): { locked: boolean; remainingMinutes: number } {
 
   if (newCount >= MAX_LOGIN_ATTEMPTS) {
     const lockedUntil = Date.now() + LOCKOUT_DURATION;
-    sessionStorage.setItem(ATTEMPTS_KEY, JSON.stringify({ count: newCount, lockedUntil }));
+    localStorage.setItem(ATTEMPTS_KEY, JSON.stringify({ count: newCount, lockedUntil }));
     return { locked: true, remainingMinutes: 15 };
   } else {
-    sessionStorage.setItem(ATTEMPTS_KEY, JSON.stringify({ count: newCount, lockedUntil: null }));
+    localStorage.setItem(ATTEMPTS_KEY, JSON.stringify({ count: newCount, lockedUntil: null }));
     return { locked: false, remainingMinutes: 0 };
   }
 }
 
 function clearLoginAttempts() {
-  sessionStorage.removeItem(ATTEMPTS_KEY);
+  localStorage.removeItem(ATTEMPTS_KEY);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -183,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  // Login handler
+  // Login handler with bcrypt verification
   const login = useCallback(async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = pass.trim();
@@ -211,8 +243,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Akun ini sedang dinonaktifkan (SUSPENDED). Hubungi Super Admin.' };
     }
 
-    // Validate password
-    if (foundUser.password !== cleanPass) {
+    // Validate password using bcrypt (with legacy plaintext fallback)
+    if (!foundUser.password || !verifyPassword(cleanPass, foundUser.password)) {
       const attemptRes = recordFailedAttempt();
       if (attemptRes.locked) {
         return { 
@@ -221,6 +253,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
       return { success: false, error: 'Email atau password yang Anda masukkan tidak sesuai.' };
+    }
+
+    // If the stored password was plaintext (legacy), auto-migrate to hash
+    if (foundUser.password && !foundUser.password.startsWith('$2')) {
+      const hashed = hashPassword(cleanPass);
+      const migrated = currentUsers.map(u =>
+        u.id === foundUser.id ? { ...u, password: hashed } : u
+      );
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(migrated));
     }
 
     // Login success
@@ -254,7 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
-  // Add new user / worker (Super Admin only)
+  // Add new user / worker (Super Admin only) — password is hashed before storage
   const addUser = useCallback((newUserData: Omit<UserAccount, 'id' | 'createdAt'>): { success: boolean; error?: string; user?: UserAccount } => {
     const currentUsers = getStoredUsers();
     const emailLower = newUserData.email.trim().toLowerCase();
@@ -267,6 +308,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ...newUserData,
       id: `usr-${Date.now()}`,
       email: emailLower,
+      password: newUserData.password ? hashPassword(newUserData.password) : undefined,
       status: newUserData.status || 'ACTIVE',
       createdAt: new Date().toISOString().split('T')[0],
     };
@@ -317,9 +359,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   }, [user]);
 
-  // Reset password
+  // Reset password — hash the new password before saving
   const resetUserPassword = useCallback((id: string, newPassword: string): { success: boolean; error?: string } => {
-    return updateUser(id, { password: newPassword });
+    return updateUser(id, { password: hashPassword(newPassword) });
   }, [updateUser]);
 
   // Clear demo workers (keep only Super Admin & Operator)

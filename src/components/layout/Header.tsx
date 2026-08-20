@@ -22,6 +22,18 @@ export function Header() {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
   return (
     <header
       className={`sticky top-0 z-40 w-full transition-all duration-300 ${
@@ -120,39 +132,49 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Drawer Navigation */}
+      {/* Mobile Drawer Navigation with Backdrop Overlay */}
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-x-0 top-full bg-white border-b border-slate-200 shadow-xl px-4 pt-3 pb-6 animate-in slide-in-from-top-2 duration-200">
-          <div className="flex flex-col space-y-1">
-            {siteConfig.navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className="px-4 py-3 rounded-xl text-base font-medium text-ink-primary hover:bg-brand-50 hover:text-brand-600 transition-colors flex items-center justify-between"
-              >
-                <span>{item.name}</span>
-                <ArrowUpRight className="w-4 h-4 text-ink-light" />
-              </Link>
-            ))}
-          </div>
+        <>
+          {/* Dark Overlay Backdrop */}
+          <div
+            className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
 
-          <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-2">
-            <div className="text-xs text-ink-muted px-4 mb-1">
-              Konsultasi langsung tanpa bot:
+          {/* Drawer Panel */}
+          <div className="lg:hidden fixed inset-x-0 top-[57px] bg-white border-b border-slate-200 shadow-xl px-4 pt-3 pb-6 animate-in slide-in-from-top-2 duration-200 z-50">
+            <div className="flex flex-col space-y-1">
+              {siteConfig.navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className="px-4 py-3 rounded-xl text-base font-medium text-ink-primary hover:bg-brand-50 hover:text-brand-600 transition-colors flex items-center justify-between"
+                >
+                  <span>{item.name}</span>
+                  <ArrowUpRight className="w-4 h-4 text-ink-light" />
+                </Link>
+              ))}
             </div>
-            <Button
-              href={getWhatsAppUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              variant="primary"
-              size="lg"
-              className="w-full justify-center gap-2"
-            >
-              <MessageCircle className="w-5 h-5" />
-              <span>Chat WhatsApp Sekarang</span>
-            </Button>
+
+            <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-2">
+              <div className="text-xs text-ink-muted px-4 mb-1">
+                Konsultasi langsung tanpa bot:
+              </div>
+              <Button
+                href={getWhatsAppUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="primary"
+                size="lg"
+                className="w-full justify-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span>Chat WhatsApp Sekarang</span>
+              </Button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </header>
   );

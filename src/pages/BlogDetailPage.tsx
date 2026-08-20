@@ -12,8 +12,11 @@ import {
   Sparkles,
   HelpCircle
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getArticleBySlug, getAllArticles } from '@/data/articles';
 import { getWhatsAppUrl } from '@/config/site';
+import { sanitizeJsonLd } from '@/utils/sanitize';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -72,8 +75,8 @@ export function BlogDetailPage() {
   return (
     <main className="py-12 bg-surface-mist min-h-screen font-sans">
       
-      {/* Article Schema JSON-LD */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+      {/* Article Schema JSON-LD (sanitized) */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sanitizeJsonLd(articleSchema) }} />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
@@ -126,10 +129,12 @@ export function BlogDetailPage() {
           </div>
         </header>
 
-        {/* Article Body */}
+        {/* Article Body — Rendered as rich Markdown */}
         <article className="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200/80 shadow-card space-y-6">
-          <div className="prose prose-slate max-w-none text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-sans text-ink-secondary">
-            {article.contentMarkdown || article.excerpt}
+          <div className="prose prose-slate prose-sm sm:prose-base max-w-none prose-headings:font-extrabold prose-headings:tracking-tight prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-2 prose-p:leading-relaxed prose-p:text-ink-secondary prose-li:text-ink-secondary prose-blockquote:border-brand-400 prose-blockquote:bg-brand-50/50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-xl prose-blockquote:not-italic prose-a:text-brand-600 prose-a:font-semibold prose-strong:text-ink-primary prose-hr:border-slate-200 font-sans">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {article.contentMarkdown || article.excerpt}
+            </ReactMarkdown>
           </div>
 
           {/* Article FAQs if any */}

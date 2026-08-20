@@ -32,7 +32,7 @@ export function trackEvent(eventName: AnalyticsEventName, params?: EventParams):
   };
 
   // 1. Log in development mode
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.DEV) {
     console.log(`[Analytics Event] ${eventName}:`, payload);
   }
 

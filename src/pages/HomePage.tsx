@@ -9,6 +9,7 @@ import { FaqSection } from '@/components/home/FaqSection';
 import { CtaBannerSection } from '@/components/home/CtaBannerSection';
 import { faqsData } from '@/data/faqs';
 import { servicesData } from '@/data/services';
+import { sanitizeJsonLd } from '@/utils/sanitize';
 
 export function HomePage() {
   useEffect(() => {
@@ -91,10 +92,10 @@ export function HomePage() {
 
   return (
     <main>
-      {/* Structured SEO Schemas */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(professionalServiceSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceCatalogSchema) }} />
+      {/* Structured SEO Schemas (sanitized to prevent XSS) */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sanitizeJsonLd(professionalServiceSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sanitizeJsonLd(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sanitizeJsonLd(serviceCatalogSchema) }} />
 
       <HeroSection />
       <ValuePropsSection />

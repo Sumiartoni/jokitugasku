@@ -74,7 +74,7 @@ export function LoginPage() {
         </div>
 
         <a
-          href="http://localhost:3000"
+          href={import.meta.env.VITE_PUBLIC_URL || '/'}
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
@@ -170,51 +170,53 @@ export function LoginPage() {
             </Button>
           </form>
 
-          {/* Quick Demo Test Buttons */}
-          <div className="pt-4 border-t border-slate-100 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider">
-                Akun Uji Coba (Klik Cepat):
-              </span>
-              <Badge variant="brand" className="text-[10px]">Testing Mode</Badge>
+          {/* Quick Demo Test Buttons — Only visible in demo mode (VITE_DEMO_MODE=true) */}
+          {import.meta.env.VITE_DEMO_MODE === 'true' && (
+            <div className="pt-4 border-t border-slate-100 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider">
+                  Akun Uji Coba (Klik Cepat):
+                </span>
+                <Badge variant="brand" className="text-[10px]">Demo Mode</Badge>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('admin@jokitugasku.id', 'Admin@JT2026!')}
+                  className="p-2 rounded-xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 border border-slate-200 text-ink-secondary text-center transition-colors font-medium"
+                >
+                  <span className="block font-bold text-ink-primary">Super Admin</span>
+                  <span className="text-[10px] text-ink-muted">Akses Penuh</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('operator@jokitugasku.id', 'Operator@JT2026!')}
+                  className="p-2 rounded-xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 border border-slate-200 text-ink-secondary text-center transition-colors font-medium"
+                >
+                  <span className="block font-bold text-ink-primary">CS Operator</span>
+                  <span className="text-[10px] text-ink-muted">CRM & Task</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('worker@jokitugasku.id', 'Worker@JT2026!')}
+                  className="p-2 rounded-xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 border border-slate-200 text-ink-secondary text-center transition-colors font-medium"
+                >
+                  <span className="block font-bold text-ink-primary">Penjoki</span>
+                  <span className="text-[10px] text-ink-muted">Tugas Khusus</span>
+                </button>
+              </div>
             </div>
-
-            <div className="grid grid-cols-3 gap-2 text-[11px]">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin@jokitugasku.id', 'Admin@JT2026!')}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 border border-slate-200 text-ink-secondary text-center transition-colors font-medium"
-              >
-                <span className="block font-bold text-ink-primary">Super Admin</span>
-                <span className="text-[10px] text-ink-muted">Akses Penuh</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('operator@jokitugasku.id', 'Operator@JT2026!')}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 border border-slate-200 text-ink-secondary text-center transition-colors font-medium"
-              >
-                <span className="block font-bold text-ink-primary">CS Operator</span>
-                <span className="text-[10px] text-ink-muted">CRM & Task</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('worker@jokitugasku.id', 'Worker@JT2026!')}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 border border-slate-200 text-ink-secondary text-center transition-colors font-medium"
-              >
-                <span className="block font-bold text-ink-primary">Penjoki</span>
-                <span className="text-[10px] text-ink-muted">Tugas Khusus</span>
-              </button>
-            </div>
-          </div>
+          )}
 
         </div>
 
         {/* Security Microcopy */}
         <div className="mt-4 text-center text-xs text-slate-400 flex items-center justify-center gap-1.5">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Sesi terenkripsi & terproteksi proteksi brute-force (Notion 13).</span>
+          <span>Sesi terenkripsi & dilindungi proteksi brute-force otomatis.</span>
         </div>
       </div>
 

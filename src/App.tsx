@@ -14,6 +14,7 @@ import { KontakPage } from '@/pages/KontakPage';
 import { BlogPage } from '@/pages/BlogPage';
 import { BlogDetailPage } from '@/pages/BlogDetailPage';
 import { LegalPage } from '@/pages/LegalPage';
+import { NotFoundPage } from '@/pages/NotFoundPage';
 
 // Scroll restoration component
 function ScrollToTop() {
@@ -68,7 +69,7 @@ export function App() {
             <Route path="/kebijakan-pembayaran" element={<LegalPage type="payment" />} />
 
             {/* Fallback */}
-            <Route path="*" element={<HomePage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>
         <Footer />
