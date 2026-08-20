@@ -8,9 +8,14 @@ set -e
 
 echo "🚀 [1/4] Memulai proses deployment JokiTugasKu v2..."
 
-# 1. Pastikan Node.js dan Nginx sudah terpasang
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js belum terinstall. Menginstall Node.js 20 LTS..."
+# 1. Pastikan Node.js 20 LTS dan Nginx terpasang
+NODE_MAJOR=0
+if command -v node &> /dev/null; then
+    NODE_MAJOR=$(node -v | cut -d'.' -f1 | tr -d 'v')
+fi
+
+if [ "$NODE_MAJOR" -lt 18 ]; then
+    echo "🔄 Menginstall/Mengupdate ke Node.js 20 LTS dan Certbot..."
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     sudo apt-get install -y nodejs nginx certbot python3-certbot-nginx
 fi
