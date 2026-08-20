@@ -9,7 +9,7 @@ import {
   Sparkles,
   Award
 } from 'lucide-react';
-import { siteConfig, getWhatsAppUrl } from '@/config/site';
+import { getWhatsAppUrl } from '@/config/site';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';

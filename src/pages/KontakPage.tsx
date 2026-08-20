@@ -10,13 +10,15 @@ import {
   HelpCircle,
   Sparkles
 } from 'lucide-react';
-import { siteConfig, getWhatsAppUrl } from '@/config/site';
+import { getWhatsAppUrl } from '@/config/site';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { trackEvent } from '@/utils/analytics';
 
 export function KontakPage() {
+  const siteConfig = useSiteConfig();
   useEffect(() => {
     document.title = 'Hubungi Kami - Konsultasi & Layanan JokiTugasKu';
     window.scrollTo(0, 0);

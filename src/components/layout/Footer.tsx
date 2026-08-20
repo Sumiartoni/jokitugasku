@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle, Clock, ShieldCheck, Mail, ArrowUpRight } from 'lucide-react';
-import { siteConfig, getWhatsAppUrl } from '@/config/site';
+import { getWhatsAppUrl } from '@/config/site';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 import { servicesData } from '@/data/services';
 
 export function Footer() {
+  const siteConfig = useSiteConfig();
   const currentYear = new Date().getFullYear();
 
   return (

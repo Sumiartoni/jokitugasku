@@ -1,3 +1,5 @@
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+
 export interface SiteConfig {
   name: string;
   domain: string;
@@ -44,29 +46,58 @@ export const defaultSiteConfig: SiteConfig = {
   ],
 };
 
+// In-memory cache for Supabase settings
+let _cachedConfig: SiteConfig | null = null;
+let _fetchPromise: Promise<SiteConfig> | null = null;
+
 /**
- * Get dynamic site config synchronized with Admin Panel settings
+ * Fetch live settings from Supabase and merge with defaults.
+ * Caches the result for the session so it only fetches once.
  */
-export function getSiteConfig(): SiteConfig {
-  try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem('jt_app_settings') : null;
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
+export async function fetchSiteConfig(): Promise<SiteConfig> {
+  if (_cachedConfig) return _cachedConfig;
+
+  // Deduplicate concurrent calls
+  if (_fetchPromise) return _fetchPromise;
+
+  _fetchPromise = (async () => {
+    try {
+      if (!isSupabaseConfigured || !supabase) return defaultSiteConfig;
+
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'app_settings')
+        .single();
+
+      if (error || !data) return defaultSiteConfig;
+
+      const s = data.value as Record<string, any>;
+      _cachedConfig = {
         ...defaultSiteConfig,
-        whatsappNumber: parsed.whatsappNumber || defaultSiteConfig.whatsappNumber,
-        whatsappDisplay: parsed.whatsappDisplay || defaultSiteConfig.whatsappDisplay,
-        operatingHours: parsed.operatingHours || defaultSiteConfig.operatingHours,
-        emailPlaceholder: parsed.contactEmail || defaultSiteConfig.emailPlaceholder,
+        whatsappNumber: s.whatsappNumber || defaultSiteConfig.whatsappNumber,
+        whatsappDisplay: s.whatsappDisplay || defaultSiteConfig.whatsappDisplay,
+        operatingHours: s.operatingHours || defaultSiteConfig.operatingHours,
+        emailPlaceholder: s.contactEmail || defaultSiteConfig.emailPlaceholder,
       };
+      return _cachedConfig;
+    } catch {
+      return defaultSiteConfig;
     }
-  } catch {
-    // Fallback to default
-  }
-  return defaultSiteConfig;
+  })();
+
+  return _fetchPromise;
 }
 
-export const siteConfig: SiteConfig = getSiteConfig();
+/**
+ * Get site config synchronously (returns cached or default).
+ * For initial render — use fetchSiteConfig() for guaranteed live data.
+ */
+export function getSiteConfig(): SiteConfig {
+  return _cachedConfig || defaultSiteConfig;
+}
+
+export const siteConfig: SiteConfig = defaultSiteConfig;
 
 /**
  * Generate a WhatsApp deep link with encoded message synchronized with live admin settings

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MessageCircle, Menu, X, ArrowUpRight } from 'lucide-react';
-import { siteConfig, getWhatsAppUrl } from '@/config/site';
+import { getWhatsAppUrl } from '@/config/site';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 import { Button } from '@/components/ui/Button';
 
 export function Header() {
+  const siteConfig = useSiteConfig();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();

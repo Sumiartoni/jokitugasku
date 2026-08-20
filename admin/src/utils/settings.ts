@@ -91,12 +91,49 @@ export function getAppSettings(): AppSettings {
   }
 }
 
+/**
+ * Fetch settings from Supabase and update localStorage cache.
+ * Call this on app initialization.
+ */
+export async function fetchSettingsFromSupabase(): Promise<AppSettings> {
+  try {
+    const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
+    if (!isSupabaseConfigured || !supabase) return getAppSettings();
+
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'app_settings')
+      .single();
+
+    if (error || !data) return getAppSettings();
+
+    const supabaseSettings = data.value as Partial<AppSettings>;
+    const merged = { ...DEFAULT_SETTINGS, ...supabaseSettings };
+    
+    // Cache to localStorage for instant access
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
+    return merged;
+  } catch {
+    return getAppSettings();
+  }
+}
+
+/**
+ * Save settings to both localStorage (instant) and Supabase (persistent, cross-app).
+ * Landing page reads from Supabase, so this is how Admin -> Landing sync works.
+ */
 export function saveAppSettings(settings: Partial<AppSettings>): AppSettings {
   const current = getAppSettings();
   const updated = { ...current, ...settings };
+  
+  // 1. Save to localStorage (instant for admin UI)
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
 
-  // Cross-origin & cross-window live broadcast
+  // 2. Save to Supabase (persistent, syncs to landing page)
+  syncSettingsToSupabase(updated);
+
+  // 3. Cross-window live broadcast
   try {
     const channel = new BroadcastChannel('jt_sync_channel');
     channel.postMessage({ type: 'SETTINGS_UPDATED', payload: updated });
@@ -105,6 +142,26 @@ export function saveAppSettings(settings: Partial<AppSettings>): AppSettings {
   }
 
   return updated;
+}
+
+/**
+ * Push settings to Supabase settings table (fire-and-forget).
+ */
+async function syncSettingsToSupabase(settings: AppSettings): Promise<void> {
+  try {
+    const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
+    if (!isSupabaseConfigured || !supabase) return;
+
+    await supabase
+      .from('settings')
+      .upsert({
+        key: 'app_settings',
+        value: settings,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+  } catch {
+    console.warn('Failed to sync settings to Supabase');
+  }
 }
 
 /**

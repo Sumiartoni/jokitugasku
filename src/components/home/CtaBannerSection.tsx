@@ -1,8 +1,10 @@
 import React from 'react';
 import { MessageCircle, ArrowRight, ShieldCheck, Clock } from 'lucide-react';
-import { getWhatsAppUrl, siteConfig } from '@/config/site';
+import { getWhatsAppUrl } from '@/config/site';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 
 export function CtaBannerSection() {
+  const siteConfig = useSiteConfig();
   return (
     <section className="py-20 bg-surface-mist">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
