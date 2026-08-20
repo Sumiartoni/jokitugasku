@@ -1,0 +1,8 @@
+# robots.txt for https://jokitugasku.id/
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /worker/
+Disallow: /api/
+
+Sitemap: https://jokitugasku.id/sitemap.xml
