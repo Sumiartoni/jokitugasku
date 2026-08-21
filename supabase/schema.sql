@@ -209,9 +209,13 @@ ALTER TABLE public.crm_leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
--- 1. Public Read-Only for Published Articles
-CREATE POLICY "Public can view published articles" ON public.articles
-    FOR SELECT USING (status = 'PUBLISHED');
+-- 1. Full Access for Articles (View, Insert, Update, Delete for CMS Management)
+DROP POLICY IF EXISTS "Public can view published articles" ON public.articles;
+DROP POLICY IF EXISTS "Allow all access on articles" ON public.articles;
+CREATE POLICY "Allow all access on articles" ON public.articles
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
 -- 2. Public Read-Only for Settings (WhatsApp numbers, hours)
 CREATE POLICY "Public can view app settings" ON public.settings
