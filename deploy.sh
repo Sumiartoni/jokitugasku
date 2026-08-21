@@ -39,8 +39,8 @@ if [ ! -f admin/.env ] || ! grep -q "VITE_SUPABASE_URL" admin/.env 2>/dev/null; 
     cp admin/.env.example admin/.env
 fi
 
-if [ ! -f server/.env ] || ! grep -q "SUPABASE_URL" server/.env 2>/dev/null; then
-    echo "⚠️ Menyiapkan server/.env dari template..."
+if [ ! -f server/.env ] || ! grep -q "SUPABASE_SERVICE_ROLE_KEY" server/.env 2>/dev/null; then
+    echo "⚠️ Menyiapkan server/.env dengan SUPABASE_SERVICE_ROLE_KEY dari template..."
     cp server/.env.example server/.env
 fi
 

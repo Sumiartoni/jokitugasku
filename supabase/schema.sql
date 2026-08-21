@@ -217,13 +217,41 @@ CREATE POLICY "Allow all access on articles" ON public.articles
     USING (true)
     WITH CHECK (true);
 
--- 2. Public Read-Only for Settings (WhatsApp numbers, hours)
-CREATE POLICY "Public can view app settings" ON public.settings
-    FOR SELECT USING (true);
+-- 2. Full Access for Profiles (Worker & Admin Management)
+DROP POLICY IF EXISTS "Allow all access on profiles" ON public.profiles;
+CREATE POLICY "Allow all access on profiles" ON public.profiles
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
--- 3. Public Insert-Only for CRM Lead consultation form
+-- 3. Full Access for Settings (App Configuration & Credentials Vault)
+DROP POLICY IF EXISTS "Public can view app settings" ON public.settings;
+DROP POLICY IF EXISTS "Allow all access on settings" ON public.settings;
+CREATE POLICY "Allow all access on settings" ON public.settings
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+-- 4. Full Access for Tasks Management
+DROP POLICY IF EXISTS "Allow all access on tasks" ON public.tasks;
+CREATE POLICY "Allow all access on tasks" ON public.tasks
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+-- 5. Full Access for Task Submissions
+DROP POLICY IF EXISTS "Allow all access on task_submissions" ON public.task_submissions;
+CREATE POLICY "Allow all access on task_submissions" ON public.task_submissions
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+-- 6. Public Insert-Only for CRM Lead consultation form
+DROP POLICY IF EXISTS "Public can insert leads" ON public.crm_leads;
 CREATE POLICY "Public can insert leads" ON public.crm_leads
-    FOR INSERT WITH CHECK (true);
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
 -- Note: All mutations (admin updates, tasks, workers, private data) are 
 -- executed securely through the dedicated backend server using SUPABASE_SERVICE_ROLE_KEY,
