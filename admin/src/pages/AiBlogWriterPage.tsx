@@ -14,7 +14,9 @@ import {
   Layers, 
   HelpCircle,
   Mail,
-  ArrowRight
+  ArrowRight,
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -51,7 +53,9 @@ export function AiBlogWriterPage() {
   
   // UI Tabs
   const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor');
+  const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [emailBroadcastMsg, setEmailBroadcastMsg] = useState<string | null>(null);
 
@@ -65,37 +69,39 @@ export function AiBlogWriterPage() {
     'Kiat Belajar Mahasiswa'
   ];
 
-  const handleGenerate = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!topic.trim()) return;
 
     setIsGenerating(true);
-    setGenerationNotice(null);
+    setGenerationNotice('');
     setPublishSuccess(false);
-    setEmailBroadcastMsg(null);
+    setPublishError(null);
 
     const res = await generateArticleWithGroq({
-      topic: topic.trim(),
+      topic,
       category,
       targetAudience,
       tone,
       wordCount,
       customKeywords,
-      model: selectedModel,
+      apiKey: settings.groqApiKey,
+      model: selectedModel
     });
 
     setIsGenerating(false);
 
     if (res.success && res.data) {
-      setTitle(res.data.title);
-      setSlug(res.data.slug);
-      setMetaDesc(res.data.metaDescription);
-      setTags(res.data.tags || []);
-      setContentMarkdown(res.data.contentMarkdown);
-      setFaqs(res.data.faqs || []);
-
+      const data = res.data;
+      setTitle(data.title);
+      setSlug(data.slug || data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));
+      setMetaDesc(data.metaDescription);
+      setContentMarkdown(data.contentMarkdown);
+      setTags(data.tags || []);
+      setFaqs(data.faqs || []);
+      
       if (res.usedSimulation) {
-        setGenerationNotice('Artikel di-generate dengan template standar. Untuk hasil kustom realtime, masukkan Groq API Key di menu Settings.');
+        setGenerationNotice('Mode Offline/Fallback: Menggunakan template cerdas siap pakai. Tambahkan Groq API Key di Settings untuk pemrosesan AI langsung.');
       } else {
         setGenerationNotice(`Berhasil di-generate menggunakan Groq AI Model (${selectedModel})!`);
       }
@@ -107,6 +113,10 @@ export function AiBlogWriterPage() {
   const handlePublish = async () => {
     if (!title || !contentMarkdown) return;
     
+    setIsPublishing(true);
+    setPublishSuccess(false);
+    setPublishError(null);
+
     const articleSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const newArticle = {
       slug: articleSlug,
@@ -121,8 +131,10 @@ export function AiBlogWriterPage() {
       status: 'PUBLISHED'
     };
 
-    // 1. Try Backend API first (uses service_role key with 100% privilege)
     let savedSuccessfully = false;
+    let lastError = '';
+
+    // 1. Try Backend API first (uses service_role key with 100% root privilege)
     try {
       const token = sessionStorage.getItem('jt_auth_session') 
         ? JSON.parse(sessionStorage.getItem('jt_auth_session') || '{}').token 
@@ -136,11 +148,14 @@ export function AiBlogWriterPage() {
         },
         body: JSON.stringify(newArticle)
       });
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         savedSuccessfully = true;
+      } else {
+        lastError = data.message || 'Gagal menyimpan via backend API';
       }
-    } catch {
-      // Fallback
+    } catch (e: any) {
+      lastError = e.message;
     }
 
     // 2. Fallback to Supabase client directly
@@ -151,24 +166,34 @@ export function AiBlogWriterPage() {
           const { error } = await supabase
             .from('articles')
             .upsert(newArticle, { onConflict: 'slug' });
-          if (!error) savedSuccessfully = true;
+          if (!error) {
+            savedSuccessfully = true;
+          } else {
+            lastError = error.message;
+          }
         }
-      } catch (e) {
-        console.error('Failed to save to Supabase:', e);
+      } catch (e: any) {
+        lastError = e.message;
       }
     }
 
-    setPublishSuccess(true);
-    setTimeout(() => setPublishSuccess(false), 5000);
+    setIsPublishing(false);
 
-    // Optional email notification
-    if (settings.sendArticlePublishedEmail) {
-      sendEmailNotification({
-        toEmail: settings.contactEmail,
-        toName: 'Admin Tim',
-        subject: `[Publikasi Artikel] ${title}`,
-        htmlContent: `<p>Artikel baru telah dipublikasikan ke blog website: <strong>${title}</strong></p><p>${metaDesc}</p>`
-      }).then(r => setEmailBroadcastMsg(r.message));
+    if (savedSuccessfully) {
+      setPublishSuccess(true);
+      setTimeout(() => setPublishSuccess(false), 5000);
+
+      // Optional email notification
+      if (settings.sendArticlePublishedEmail) {
+        sendEmailNotification({
+          toEmail: settings.contactEmail,
+          toName: 'Admin Tim',
+          subject: `[Publikasi Artikel] ${title}`,
+          htmlContent: `<p>Artikel baru telah dipublikasikan ke blog website: <strong>${title}</strong></p><p>${metaDesc}</p>`
+        }).then(r => setEmailBroadcastMsg(r.message));
+      }
+    } else {
+      setPublishError(`Gagal menerbitkan artikel: ${lastError}`);
     }
   };
 
@@ -389,10 +414,11 @@ export function AiBlogWriterPage() {
                 variant="primary"
                 size="md"
                 onClick={handlePublish}
+                disabled={isPublishing}
                 className="gap-2 shadow-brand-glow"
               >
-                <Globe className="w-4 h-4" />
-                <span>Publikasikan Artikel</span>
+                {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+                <span>{isPublishing ? 'Mempublikasikan...' : 'Publikasikan Artikel'}</span>
               </Button>
             </div>
           </div>
@@ -401,9 +427,16 @@ export function AiBlogWriterPage() {
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between animate-in fade-in">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Artikel berhasil dipublikasikan ke katalog blog website!</span>
+                <span>Artikel berhasil dipublikasikan ke database & katalog blog website!</span>
               </div>
               {emailBroadcastMsg && <span className="text-[11px] text-emerald-700">{emailBroadcastMsg}</span>}
+            </div>
+          )}
+
+          {publishError && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{publishError}</span>
             </div>
           )}
 

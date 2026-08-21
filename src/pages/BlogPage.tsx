@@ -46,46 +46,56 @@ export function BlogPage() {
         </div>
 
         {/* Articles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {articles.map((art) => (
-            <Card key={art.id} hoverable className="bg-white flex flex-col justify-between p-6 border-slate-200 shadow-card">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs text-ink-muted">
-                  <Badge variant="brand">{art.category}</Badge>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {art.readTime || '5 menit baca'}
-                  </span>
+        {articles.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 p-8 space-y-3 shadow-card">
+            <BookOpen className="w-12 h-12 text-brand-300 mx-auto" />
+            <h3 className="text-lg font-bold text-ink-primary">Belum Ada Artikel yang Dipublikasikan</h3>
+            <p className="text-sm text-ink-muted max-w-md mx-auto">
+              Artikel edukasi dan panduan akademik yang diterbitkan melalui Panel Admin akan otomatis muncul di sini secara real-time.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {articles.map((art) => (
+              <Card key={art.id || art.slug} hoverable className="bg-white flex flex-col justify-between p-6 border-slate-200 shadow-card">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs text-ink-muted">
+                    <Badge variant="brand">{art.category}</Badge>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {art.readTime || '5 menit baca'}
+                    </span>
+                  </div>
+
+                  <Link to={`/blog/${art.slug}`}>
+                    <h2 className="font-bold text-lg text-ink-primary leading-snug hover:text-brand-600 transition-colors line-clamp-2">
+                      {art.title}
+                    </h2>
+                  </Link>
+
+                  <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed line-clamp-3">
+                    {art.excerpt}
+                  </p>
                 </div>
 
-                <Link to={`/blog/${art.slug}`}>
-                  <h2 className="font-bold text-lg text-ink-primary leading-snug hover:text-brand-600 transition-colors line-clamp-2">
-                    {art.title}
-                  </h2>
-                </Link>
+                <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-ink-muted flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {art.date}
+                  </span>
 
-                <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed line-clamp-3">
-                  {art.excerpt}
-                </p>
-              </div>
-
-              <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="text-ink-muted flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {art.date}
-                </span>
-
-                <Link
-                  to={`/blog/${art.slug}`}
-                  className="text-brand-600 font-bold inline-flex items-center gap-1 hover:underline"
-                >
-                  <span>Baca Artikel</span>
-                  <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            </Card>
-          ))}
-        </div>
+                  <Link
+                    to={`/blog/${art.slug}`}
+                    className="text-brand-600 font-bold inline-flex items-center gap-1 hover:underline"
+                  >
+                    <span>Baca Artikel</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Consultation Callout */}
         <div className="p-8 rounded-3xl bg-white border border-slate-200 text-center space-y-4 shadow-card">

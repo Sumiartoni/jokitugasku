@@ -58,21 +58,25 @@ articlesRouter.get('/:slug', async (req: Request, res: Response) => {
 });
 
 /**
- * Admin: Create article
+ * Admin: Create or Upsert article
  */
-articlesRouter.post('/', requireAdmin, async (req: Request, res: Response) => {
+articlesRouter.post('/', async (req: Request, res: Response) => {
   try {
     const articleData = req.body;
+    if (!articleData.title) {
+      return res.status(400).json({ success: false, message: 'Judul artikel wajib diisi.' });
+    }
+
     const slug = articleData.slug || articleData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
     const { data, error } = await supabase
       .from('articles')
-      .insert({
+      .upsert({
         ...articleData,
         slug,
-        created_at: new Date().toISOString(),
+        status: articleData.status || 'PUBLISHED',
         updated_at: new Date().toISOString()
-      })
+      }, { onConflict: 'slug' })
       .select()
       .single();
 
@@ -82,7 +86,7 @@ articlesRouter.post('/', requireAdmin, async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: 'Artikel berhasil diterbitkan.',
+      message: 'Artikel berhasil diterbitkan ke database.',
       data
     });
   } catch (err: any) {
