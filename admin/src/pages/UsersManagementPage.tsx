@@ -86,7 +86,7 @@ export function UsersManagementPage() {
       return;
     }
 
-    const result = addUser({
+    const result = await addUser({
       name: name.trim(),
       email: email.trim(),
       password: password.trim(),
@@ -114,39 +114,33 @@ export function UsersManagementPage() {
               Selamat Bergabung di Tim JokiTugasKu!
             </h1>
             <p style="color: #e0e7ff; font-size: 13px; margin: 0;">
-              Platform Layanan Asistensi Akademik &amp; Pembuatan Tugas Terpercaya
+              Akun Anda telah resmi dibuat oleh Administrator. Silakan gunakan kredensial berikut untuk masuk.
             </p>
           </div>
 
           <!-- Body Content -->
-          <div style="padding: 28px 24px; color: #1e293b;">
-            <p style="font-size: 15px; line-height: 1.6; margin-top: 0;">
-              Halo <strong>${name}</strong>,
-            </p>
-            <p style="font-size: 14px; line-height: 1.6; color: #475569;">
-              Selamat! Anda telah resmi didaftarkan sebagai <strong>${role === 'WORKER' ? 'Penjoki / Academic Worker' : role === 'ADMIN_OPERATOR' ? 'CS & Operasional Operator' : 'Administrator'}</strong> di sistem internal <strong>JokiTugasKu.id</strong>.
+          <div style="padding: 32px 24px; color: #334155;">
+            <p style="font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+              Halo <strong>${name}</strong>, selamat bergabung menjadi bagian dari tim <strong>JokiTugasKu.id</strong>. Berikut adalah data akses login akun Anda:
             </p>
 
             <!-- Credentials Card -->
-            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0;">
-              <h3 style="color: #4f46e5; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">
-                🔑 Kredensial Akses Akun Anda:
-              </h3>
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 20px 0;">
               <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                 <tr>
-                  <td style="padding: 6px 0; color: #64748b; width: 140px;"><strong>Portal Login:</strong></td>
-                  <td style="padding: 6px 0; font-weight: 600;"><a href="https://admin.jokitugasku.id/login" style="color: #4f46e5; text-decoration: none;">https://admin.jokitugasku.id/login</a></td>
+                  <td style="padding: 6px 0; color: #64748b; width: 35%;"><strong>URL Portal:</strong></td>
+                  <td style="padding: 6px 0;"><a href="https://admin.jokitugasku.id/login" style="color: #4f46e5; font-weight: 700; text-decoration: none;">admin.jokitugasku.id/login</a></td>
                 </tr>
                 <tr>
                   <td style="padding: 6px 0; color: #64748b;"><strong>Email / Username:</strong></td>
-                  <td style="padding: 6px 0; font-weight: 700; color: #0f172a;">${email.toLowerCase()}</td>
+                  <td style="padding: 6px 0; font-weight: 700; color: #0f172a; font-family: monospace;">${email}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 6px 0; color: #64748b;"><strong>Password Akun:</strong></td>
-                  <td style="padding: 6px 0; font-weight: 700; color: #7c3aed; font-family: monospace; font-size: 15px;">${password}</td>
+                  <td style="padding: 6px 0; color: #64748b;"><strong>Password:</strong></td>
+                  <td style="padding: 6px 0; font-weight: 700; color: #4f46e5; font-family: monospace; background: #ede9fe; padding: 4px 8px; border-radius: 6px; display: inline-block;">${password}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 6px 0; color: #64748b;"><strong>Peran / Role:</strong></td>
+                  <td style="padding: 6px 0; color: #64748b;"><strong>Role Akses:</strong></td>
                   <td style="padding: 6px 0; font-weight: 600; color: #059669;">${role === 'WORKER' ? 'Worker (Penjoki)' : role === 'ADMIN_OPERATOR' ? 'CS Operator' : 'Super Admin'}</td>
                 </tr>
                 ${specialization ? `
@@ -194,38 +188,40 @@ export function UsersManagementPage() {
     }
 
     setAddModalOpen(false);
-    showToast('success', `User ${name} (${email}) berhasil ditambahkan sebagai ${role}!`);
+    showToast('success', `User ${name} (${email}) berhasil ditambahkan dan tersimpan di database Supabase!`);
   };
 
-  const handleToggleStatus = (target: UserAccount) => {
+  const handleToggleStatus = async (target: UserAccount) => {
     if (target.id === currentUser?.id) {
       showToast('error', 'Anda tidak dapat menonaktifkan akun sendiri.');
       return;
     }
     const newStatus = target.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-    const res = updateUser(target.id, { status: newStatus });
+    const res = await updateUser(target.id, { status: newStatus });
     if (res.success) {
       showToast('success', `Status ${target.name} diubah menjadi ${newStatus === 'ACTIVE' ? 'Aktif' : 'Nonaktif'}.`);
+    } else {
+      showToast('error', res.error || 'Gagal mengubah status user.');
     }
   };
 
-  const handleDelete = (target: UserAccount) => {
+  const handleDelete = async (target: UserAccount) => {
     if (!confirm(`Apakah Anda yakin ingin menghapus akun ${target.name} (${target.email})?`)) return;
-    const res = deleteUser(target.id);
+    const res = await deleteUser(target.id);
     if (res.success) {
-      showToast('success', `Akun ${target.name} berhasil dihapus.`);
+      showToast('success', `Akun ${target.name} berhasil dihapus dari database.`);
     } else {
       showToast('error', res.error || 'Gagal menghapus user.');
     }
   };
 
-  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetUser || !newPassword.trim()) return;
 
-    const res = resetUserPassword(targetUser.id, newPassword.trim());
+    const res = await resetUserPassword(targetUser.id, newPassword.trim());
     if (res.success) {
-      showToast('success', `Password untuk ${targetUser.name} berhasil diubah.`);
+      showToast('success', `Password untuk ${targetUser.name} berhasil diubah di database.`);
       setResetModalOpen(false);
       setTargetUser(null);
     } else {
@@ -234,7 +230,7 @@ export function UsersManagementPage() {
   };
 
   const copyCredentials = (u: UserAccount) => {
-    const text = `Kredensial Login JokiTugasKu:\nEmail: ${u.email}\nPassword: ${u.password || 'Tersimpan aman'}\nURL: http://localhost:3001/login`;
+    const text = `Kredensial Login JokiTugasKu:\nEmail: ${u.email}\nPassword: ${u.password || 'Tersimpan aman'}\nURL: https://admin.jokitugasku.id/login`;
     navigator.clipboard.writeText(text);
     setCopiedId(u.id);
     setTimeout(() => setCopiedId(null), 2500);

@@ -166,26 +166,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [usersList, setUsersList] = useState<UserAccount[]>(() => getStoredUsers());
 
-  // Save users list to localStorage and state
-  const saveUsers = (newUsers: UserAccount[]) => {
-    setUsersList(newUsers);
+  // Helper to fetch live users from Supabase API
+  const fetchLiveUsers = useCallback(async () => {
     try {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(newUsers));
-    } catch (e) {
-      console.error('Failed to save users', e);
-    }
-  };
+      const res = await fetch('/api/auth/users');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setUsersList(json.data);
+          try {
+            localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(json.data));
+          } catch {}
+          return;
+        }
+      }
+    } catch {}
+    // Fallback to local storage
+    setUsersList(getStoredUsers());
+  }, []);
 
-  // Restore existing session on initial load
+  // Restore existing session on initial load and load live users from Supabase
   useEffect(() => {
     const session = getStoredSession();
     if (session) {
       setUser(session.user);
     }
-    setIsLoading(false);
-  }, []);
+    fetchLiveUsers().finally(() => {
+      setIsLoading(false);
+    });
+  }, [fetchLiveUsers]);
 
-  // Login handler with bcrypt verification
+  // Login handler connected to live Supabase backend
   const login = useCallback(async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = pass.trim();
@@ -200,7 +211,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    // Refresh users from storage
+    try {
+      // 1. Try Backend API first (Queries Supabase DB directly)
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password: cleanPass })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success && data.user) {
+        clearLoginAttempts();
+        const authUser: AuthUser = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          role: data.user.role,
+          phone: data.user.phone,
+          specialization: data.user.specialization,
+          status: data.user.status,
+          createdAt: data.user.created_at || data.user.createdAt,
+        };
+
+        const sessionData = {
+          user: authUser,
+          token: data.token,
+          expiresAt: Date.now() + SESSION_DURATION,
+        };
+
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+        setUser(authUser);
+        return { success: true };
+      } else if (!res.ok && data.message) {
+        recordFailedAttempt();
+        return { success: false, error: data.message };
+      }
+    } catch {
+      // Fallback to offline/local validation if server is unavailable
+    }
+
+    // 2. Client-side fallback for offline local verification
     const currentUsers = getStoredUsers();
     const foundUser = currentUsers.find(u => u.email.toLowerCase() === cleanEmail);
 
@@ -213,7 +264,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Akun ini sedang dinonaktifkan (SUSPENDED). Hubungi Super Admin.' };
     }
 
-    // Validate password using bcrypt (with legacy plaintext and standard alias fallback)
     const isSuperAdminPassword = cleanEmail === 'admin@jokitugasku.id' && (cleanPass === 'Admin@JT2026!' || cleanPass === 'Admin123!');
     const isOperatorPassword = cleanEmail === 'operator@jokitugasku.id' && (cleanPass === 'Operator@JT2026!' || cleanPass === 'Operator123!');
     const isPasswordValid = isSuperAdminPassword || isOperatorPassword || (foundUser.password && verifyPassword(cleanPass, foundUser.password));
@@ -229,17 +279,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Email atau password yang Anda masukkan tidak sesuai.' };
     }
 
-    // If the stored password was plaintext (legacy), auto-migrate to hash
-    clearLoginAttempts();
-    if (foundUser.password && !foundUser.password.startsWith('$2')) {
-      const hashed = hashPassword(cleanPass);
-      const migrated = currentUsers.map(u =>
-        u.id === foundUser.id ? { ...u, password: hashed } : u
-      );
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(migrated));
-    }
-
-    // Login success
     clearLoginAttempts();
 
     const authUser: AuthUser = {
@@ -270,49 +309,89 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
-  // Add new user / worker (Super Admin only) — password is hashed before storage
-  const addUser = useCallback((newUserData: Omit<UserAccount, 'id' | 'createdAt'>): { success: boolean; error?: string; user?: UserAccount } => {
-    const currentUsers = getStoredUsers();
-    const emailLower = newUserData.email.trim().toLowerCase();
+  // Add new user / worker — Persists directly to Supabase PostgreSQL database
+  const addUser = useCallback(async (newUserData: Omit<UserAccount, 'id' | 'createdAt'>): Promise<{ success: boolean; error?: string; user?: UserAccount }> => {
+    const cleanEmail = newUserData.email.trim().toLowerCase();
 
-    if (currentUsers.some(u => u.email.toLowerCase() === emailLower)) {
-      return { success: false, error: `Email ${newUserData.email} sudah terdaftar dalam sistem.` };
+    try {
+      const res = await fetch('/api/auth/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newUserData.name.trim(),
+          email: cleanEmail,
+          password: newUserData.password,
+          role: newUserData.role,
+          phone: newUserData.phone,
+          specialization: newUserData.specialization,
+          status: newUserData.status || 'ACTIVE'
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success && data.data) {
+        const created: UserAccount = {
+          id: data.data.id,
+          name: data.data.name,
+          email: data.data.email,
+          role: data.data.role,
+          phone: data.data.phone,
+          specialization: data.data.specialization,
+          status: data.data.status,
+          createdAt: data.data.created_at,
+        };
+
+        setUsersList(prev => [...prev.filter(u => u.id !== created.id && u.email !== created.email), created]);
+        fetchLiveUsers();
+        return { success: true, user: created };
+      } else {
+        return { success: false, error: data.message || 'Gagal menambahkan user ke database.' };
+      }
+    } catch (err: any) {
+      // Local fallback
+      const currentUsers = getStoredUsers();
+      if (currentUsers.some(u => u.email.toLowerCase() === cleanEmail)) {
+        return { success: false, error: `Email ${newUserData.email} sudah terdaftar.` };
+      }
+
+      const created: UserAccount = {
+        ...newUserData,
+        id: `usr-${Date.now()}`,
+        email: cleanEmail,
+        password: newUserData.password ? hashPassword(newUserData.password) : undefined,
+        status: newUserData.status || 'ACTIVE',
+        createdAt: new Date().toISOString().split('T')[0],
+      };
+
+      const updated = [...currentUsers, created];
+      setUsersList(updated);
+      try {
+        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return { success: true, user: created };
     }
-
-    const created: UserAccount = {
-      ...newUserData,
-      id: `usr-${Date.now()}`,
-      email: emailLower,
-      password: newUserData.password ? hashPassword(newUserData.password) : undefined,
-      status: newUserData.status || 'ACTIVE',
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
-    const updated = [...currentUsers, created];
-    saveUsers(updated);
-    return { success: true, user: created };
-  }, []);
+  }, [fetchLiveUsers]);
 
   // Update existing user
-  const updateUser = useCallback((id: string, updates: Partial<UserAccount>): { success: boolean; error?: string } => {
-    const currentUsers = getStoredUsers();
-
-    if (updates.email) {
-      const emailLower = updates.email.trim().toLowerCase();
-      if (currentUsers.some(u => u.id !== id && u.email.toLowerCase() === emailLower)) {
-        return { success: false, error: `Email ${updates.email} sudah digunakan user lain.` };
+  const updateUser = useCallback(async (id: string, updates: Partial<UserAccount>): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/auth/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.message || 'Gagal memperbarui user di database.' };
       }
-    }
+    } catch {}
 
-    const updated = currentUsers.map(u => (u.id === id ? { ...u, ...updates } : u));
-    saveUsers(updated);
+    setUsersList(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
 
-    // If current logged-in user was updated, sync session
+    // Sync current session if logged-in user was updated
     if (user && user.id === id) {
-      const syncUser: AuthUser = {
-        ...user,
-        ...updates,
-      };
+      const syncUser: AuthUser = { ...user, ...updates };
       setUser(syncUser);
       const session = getStoredSession();
       if (session) {
@@ -320,35 +399,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    fetchLiveUsers();
     return { success: true };
-  }, [user]);
+  }, [user, fetchLiveUsers]);
 
   // Delete user
-  const deleteUser = useCallback((id: string): { success: boolean; error?: string } => {
+  const deleteUser = useCallback(async (id: string): Promise<{ success: boolean; error?: string }> => {
     if (user && user.id === id) {
       return { success: false, error: 'Anda tidak dapat menghapus akun Anda sendiri saat sedang login.' };
     }
-    const currentUsers = getStoredUsers();
-    const updated = currentUsers.filter(u => u.id !== id);
-    saveUsers(updated);
+
+    try {
+      const res = await fetch(`/api/auth/users/${id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.message || 'Gagal menghapus user dari database.' };
+      }
+    } catch {}
+
+    setUsersList(prev => prev.filter(u => u.id !== id));
+    fetchLiveUsers();
     return { success: true };
-  }, [user]);
+  }, [user, fetchLiveUsers]);
 
-  // Reset password — hash the new password before saving
-  const resetUserPassword = useCallback((id: string, newPassword: string): { success: boolean; error?: string } => {
-    return updateUser(id, { password: hashPassword(newPassword) });
-  }, [updateUser]);
-
-  // Clear demo workers (keep only Super Admin & Operator)
-  const clearDemoWorkers = useCallback(() => {
-    const currentUsers = getStoredUsers();
-    const cleanList = currentUsers.filter(u => u.role === 'SUPER_ADMIN' || u.role === 'ADMIN_OPERATOR');
-    saveUsers(cleanList);
+  // Reset password
+  const resetUserPassword = useCallback(async (id: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/auth/users/${id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.message || 'Gagal mereset password di database.' };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
   }, []);
+
+  // Clear demo workers
+  const clearDemoWorkers = useCallback(() => {
+    const currentUsers = usersList.filter(u => u.role === 'SUPER_ADMIN' || u.role === 'ADMIN_OPERATOR');
+    setUsersList(currentUsers);
+    try {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(currentUsers));
+    } catch {}
+  }, [usersList]);
 
   // Reset demo accounts
   const resetDemoAccounts = useCallback(() => {
-    saveUsers(DEFAULT_ACCOUNTS);
+    setUsersList(DEFAULT_ACCOUNTS);
+    try {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_ACCOUNTS));
+    } catch {}
   }, []);
 
   return (
@@ -359,10 +467,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       usersList,
       login,
       logout,
-      addUser,
-      updateUser,
-      deleteUser,
-      resetUserPassword,
+      addUser: addUser as any,
+      updateUser: updateUser as any,
+      deleteUser: deleteUser as any,
+      resetUserPassword: resetUserPassword as any,
       clearDemoWorkers,
       resetDemoAccounts
     }}>
