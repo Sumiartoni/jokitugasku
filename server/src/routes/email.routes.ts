@@ -1,30 +1,41 @@
 import { Router, Request, Response } from 'express';
 import { supabase } from '../config/db';
-import { requireAuth } from '../middleware/auth';
 
 export const emailRouter = Router();
 
-/**
- * Send email helper using configured provider in database
- */
-export async function sendEmailDirect(params: {
+export interface SendEmailPayload {
+  provider?: 'resend' | 'brevo_api' | 'brevo_smtp';
+  apiKey?: string;
+  senderEmail?: string;
+  senderName?: string;
   toEmail: string;
-  toName: string;
+  toName?: string;
   subject: string;
   htmlContent: string;
   textContent?: string;
-}): Promise<{ success: boolean; message: string; providerUsed: string }> {
-  const { data } = await supabase.from('settings').select('value').eq('key', 'app_settings').single();
-  const settings = data?.value || {};
-  const provider = settings.emailProvider || 'resend';
+}
 
-  // 1. Resend Provider
+/**
+ * Core email sender for both Resend and Brevo
+ */
+export async function sendEmailDirect(params: SendEmailPayload): Promise<{ success: boolean; message: string; providerUsed: string }> {
+  // Fetch fallback settings from database
+  const { data } = await supabase.from('settings').select('value').eq('key', 'app_settings').single();
+  const dbSettings = data?.value || {};
+
+  const provider = params.provider || dbSettings.emailProvider || 'resend';
+
+  // 1. RESEND PROVIDER
   if (provider === 'resend') {
-    if (!settings.resendApiKey) {
+    const apiKey = params.apiKey || dbSettings.resendApiKey;
+    const senderEmail = params.senderEmail || dbSettings.resendSenderEmail || 'onboarding@resend.dev';
+    const senderName = params.senderName || dbSettings.resendSenderName || 'JokiTugasKu';
+
+    if (!apiKey) {
       return {
-        success: true,
-        message: `(Simulasi Sandbox) Email '${params.subject}' berhasil disiapkan untuk ${params.toEmail}. Tambahkan Resend API Key di Settings untuk pengiriman live.`,
-        providerUsed: 'Resend (Sandbox / Simulasi)'
+        success: false,
+        message: 'Resend API Key belum diisi. Masukkan API Key Resend di Pengaturan.',
+        providerUsed: 'Resend'
       };
     }
 
@@ -32,11 +43,11 @@ export async function sendEmailDirect(params: {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${settings.resendApiKey}`,
+          'Authorization': `Bearer ${apiKey.trim()}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: `${settings.resendSenderName || 'JokiTugasKu'} <${settings.resendSenderEmail || 'notifikasi@jokitugasku.id'}>`,
+          from: `${senderName} <${senderEmail}>`,
           to: [params.toEmail],
           subject: params.subject,
           html: params.htmlContent,
@@ -44,36 +55,45 @@ export async function sendEmailDirect(params: {
         })
       });
 
+      const resJson: any = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const err: any = await res.json().catch(() => ({}));
+        let errMsg = resJson.message || resJson.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+        if (errMsg.includes('domain') || errMsg.includes('verify')) {
+          errMsg += ' (Tips: Pastikan domain email pengirim telah diverifikasi di Dashboard Resend, atau gunakan sender default onboarding@resend.dev untuk pengujian ke email akun Resend Anda).';
+        }
         return {
           success: false,
-          message: `Resend Error: ${err.message || res.statusText}`,
+          message: `Resend Error: ${errMsg}`,
           providerUsed: 'Resend API'
         };
       }
 
       return {
         success: true,
-        message: `Email resmi berhasil dikirim ke ${params.toEmail} via Resend.`,
+        message: `Email berhasil dikirim ke ${params.toEmail} via Resend (ID: ${resJson.id || 'OK'}).`,
         providerUsed: 'Resend API'
       };
     } catch (e: any) {
       return {
         success: false,
-        message: `Gagal mengirim email via Resend: ${e.message}`,
+        message: `Gagal menghubungkan ke Resend API: ${e.message}`,
         providerUsed: 'Resend API'
       };
     }
   }
 
-  // 2. Brevo API Provider
+  // 2. BREVO PROVIDER
   if (provider === 'brevo_api') {
-    if (!settings.brevoApiKey) {
+    const apiKey = params.apiKey || dbSettings.brevoApiKey;
+    const senderEmail = params.senderEmail || dbSettings.brevoSenderEmail || dbSettings.contactEmail || 'admin@jokitugasku.id';
+    const senderName = params.senderName || dbSettings.brevoSenderName || 'JokiTugasKu';
+
+    if (!apiKey) {
       return {
-        success: true,
-        message: `(Simulasi Brevo) Email '${params.subject}' berhasil disiapkan untuk ${params.toEmail}.`,
-        providerUsed: 'Brevo API (Simulasi)'
+        success: false,
+        message: 'Brevo API Key belum diisi. Masukkan API Key Brevo di Pengaturan.',
+        providerUsed: 'Brevo'
       };
     }
 
@@ -81,57 +101,60 @@ export async function sendEmailDirect(params: {
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          'api-key': settings.brevoApiKey,
+          'api-key': apiKey.trim(),
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
         body: JSON.stringify({
           sender: { 
-            name: settings.brevoSenderName || 'JokiTugasKu System', 
-            email: settings.brevoSenderEmail || 'admin@jokitugasku.id' 
+            name: senderName, 
+            email: senderEmail 
           },
-          to: [{ email: params.toEmail, name: params.toName }],
+          to: [{ email: params.toEmail, name: params.toName || 'Pelanggan JokiTugasKu' }],
           subject: params.subject,
           htmlContent: params.htmlContent,
-          textContent: params.textContent
+          textContent: params.textContent || params.subject
         })
       });
 
+      const resJson: any = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const err: any = await res.json().catch(() => ({}));
+        const errMsg = resJson.message || `HTTP ${res.status}: ${res.statusText}`;
         return {
           success: false,
-          message: `Brevo Error: ${err.message || res.statusText}`,
+          message: `Brevo Error: ${errMsg}`,
           providerUsed: 'Brevo API'
         };
       }
 
       return {
         success: true,
-        message: `Email resmi berhasil dikirim ke ${params.toEmail} via Brevo API.`,
+        message: `Email berhasil dikirim ke ${params.toEmail} via Brevo API (ID: ${resJson.messageId || 'OK'}).`,
         providerUsed: 'Brevo API'
       };
     } catch (e: any) {
       return {
         success: false,
-        message: `Gagal mengirim email via Brevo: ${e.message}`,
+        message: `Gagal menghubungkan ke Brevo API: ${e.message}`,
         providerUsed: 'Brevo API'
       };
     }
   }
 
   return {
-    success: true,
-    message: `Notifikasi email untuk ${params.toEmail} berhasil diproses.`,
-    providerUsed: 'Email Service'
+    success: false,
+    message: `Provider email '${provider}' tidak dikenali. Pilih 'resend' atau 'brevo_api'.`,
+    providerUsed: provider
   };
 }
 
 /**
- * Test email endpoint (requires Auth)
+ * POST /api/email/test
+ * Quick endpoint to test email configuration from admin settings
  */
-emailRouter.post('/test', requireAuth, async (req: Request, res: Response) => {
-  const { toEmail } = req.body;
+emailRouter.post('/test', async (req: Request, res: Response) => {
+  const { toEmail, provider, apiKey, senderEmail, senderName } = req.body;
   if (!toEmail || !toEmail.includes('@')) {
     return res.status(400).json({
       success: false,
@@ -141,12 +164,21 @@ emailRouter.post('/test', requireAuth, async (req: Request, res: Response) => {
 
   const result = await sendEmailDirect({
     toEmail: toEmail.trim(),
-    toName: 'Tester JokiTugasKu',
-    subject: 'Uji Coba Integrasi Email - JokiTugasKu Production',
+    toName: 'Admin Tester',
+    provider,
+    apiKey,
+    senderEmail,
+    senderName,
+    subject: `Uji Coba Integrasi Email [${provider || 'Default'}] - JokiTugasKu Live`,
     htmlContent: `
-      <h2>Halo dari JokiTugasKu Server!</h2>
-      <p>Email ini dikirim dari server backend mandiri untuk memverifikasi konfigurasi email transaksional Anda.</p>
-      <p>Waktu kirim: ${new Date().toLocaleString('id-ID')}</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded: 12px;">
+        <h2 style="color: #6366f1;">✅ Integrasi Email Berhasil!</h2>
+        <p>Email uji coba ini berhasil dikirim dari sistem backend <strong>JokiTugasKu</strong>.</p>
+        <p><strong>Provider:</strong> ${provider || 'Default'}</p>
+        <p><strong>Waktu Kirim:</strong> ${new Date().toLocaleString('id-ID')}</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #64748b;">JokiTugasKu - Solusi Akademik &amp; Pembuatan Tugas Terpercaya.</p>
+      </div>
     `
   });
 
@@ -154,10 +186,11 @@ emailRouter.post('/test', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * General send email endpoint (requires Auth)
+ * POST /api/email/send
+ * General transactional email endpoint
  */
-emailRouter.post('/send', requireAuth, async (req: Request, res: Response) => {
-  const { toEmail, toName, subject, htmlContent, textContent } = req.body;
+emailRouter.post('/send', async (req: Request, res: Response) => {
+  const { toEmail, toName, subject, htmlContent, textContent, provider, apiKey, senderEmail, senderName } = req.body;
 
   if (!toEmail || !subject || !htmlContent) {
     return res.status(400).json({
@@ -168,10 +201,14 @@ emailRouter.post('/send', requireAuth, async (req: Request, res: Response) => {
 
   const result = await sendEmailDirect({
     toEmail,
-    toName: toName || 'Klien JokiTugasKu',
+    toName: toName || 'Pelanggan JokiTugasKu',
     subject,
     htmlContent,
-    textContent
+    textContent,
+    provider,
+    apiKey,
+    senderEmail,
+    senderName
   });
 
   return res.json(result);

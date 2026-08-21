@@ -359,132 +359,60 @@ Kembalikan HANYA JSON murni tanpa markdown formatting backtick diluarnya dengan 
  */
 export async function sendEmailNotification(params: {
   toEmail: string;
-  toName: string;
+  toName?: string;
   subject: string;
   htmlContent: string;
   textContent?: string;
+  provider?: 'resend' | 'brevo_api' | 'brevo_smtp';
+  apiKey?: string;
+  senderEmail?: string;
+  senderName?: string;
 }): Promise<{ success: boolean; message: string; providerUsed: string }> {
   const settings = getAppSettings();
-  const provider = settings.emailProvider;
+  const provider = params.provider || settings.emailProvider || 'resend';
+  const apiKey = params.apiKey || (provider === 'resend' ? settings.resendApiKey : settings.brevoApiKey);
+  const senderEmail = params.senderEmail || (provider === 'resend' ? settings.resendSenderEmail : settings.brevoSenderEmail);
+  const senderName = params.senderName || (provider === 'resend' ? settings.resendSenderName : settings.brevoSenderName);
 
-  // 1. Resend API
-  if (provider === 'resend') {
-    if (!settings.resendApiKey) {
-      // Simulated response
-      return {
-        success: true,
-        message: `(Simulasi Resend) Email '${params.subject}' berhasil dikirim ke ${params.toEmail}. Tambahkan Resend API Key di Settings untuk pengiriman nyata.`,
-        providerUsed: 'Resend (Simulasi / Sandbox)'
-      };
-    }
+  try {
+    const res = await fetch('/api/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        toEmail: params.toEmail,
+        toName: params.toName || 'Pelanggan JokiTugasKu',
+        subject: params.subject,
+        htmlContent: params.htmlContent,
+        textContent: params.textContent,
+        provider,
+        apiKey,
+        senderEmail,
+        senderName
+      })
+    });
 
-    try {
-      const endpoint = window.location.hostname !== 'localhost'
-        ? '/api/resend/emails'
-        : 'https://api.resend.com/emails';
+    const data = await res.json().catch(() => ({}));
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${settings.resendApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: `${settings.resendSenderName} <${settings.resendSenderEmail}>`,
-          to: [params.toEmail],
-          subject: params.subject,
-          html: params.htmlContent,
-          text: params.textContent || params.subject
-        })
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return {
-          success: false,
-          message: `Resend Error: ${err.message || res.statusText}`,
-          providerUsed: 'Resend API'
-        };
-      }
-
-      return {
-        success: true,
-        message: `Email resmi berhasil dikirim ke ${params.toEmail} via Resend.`,
-        providerUsed: 'Resend API'
-      };
-    } catch (e: any) {
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!res.ok || !data.success) {
       return {
         success: false,
-        message: isLocal 
-          ? `Email tidak dapat dikirim dari localhost (CORS). Deploy ke VPS terlebih dahulu, lalu test dari admin.jokitugasku.id/settings`
-          : `Gagal mengirim email via Resend: ${e.message}`,
-        providerUsed: 'Resend API'
+        message: data.message || `Gagal mengirim email (HTTP ${res.status})`,
+        providerUsed: provider === 'resend' ? 'Resend' : 'Brevo'
       };
     }
+
+    return {
+      success: true,
+      message: data.message || 'Email berhasil dikirim.',
+      providerUsed: data.providerUsed || (provider === 'resend' ? 'Resend' : 'Brevo')
+    };
+  } catch (e: any) {
+    return {
+      success: false,
+      message: `Gagal menghubungi server email: ${e.message}`,
+      providerUsed: provider === 'resend' ? 'Resend' : 'Brevo'
+    };
   }
-
-  // 2. Brevo API
-  if (provider === 'brevo_api') {
-    if (!settings.brevoApiKey) {
-      return {
-        success: true,
-        message: `(Simulasi Brevo API) Email '${params.subject}' berhasil dikirim ke ${params.toEmail}. Tambahkan Brevo API Key di Settings untuk pengiriman nyata.`,
-        providerUsed: 'Brevo API (Simulasi)'
-      };
-    }
-
-    try {
-      const endpoint = window.location.hostname !== 'localhost'
-        ? '/api/brevo/v3/smtp/email'
-        : 'https://api.brevo.com/v3/smtp/email';
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'api-key': settings.brevoApiKey,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          sender: { name: settings.brevoSenderName, email: settings.brevoSenderEmail },
-          to: [{ email: params.toEmail, name: params.toName }],
-          subject: params.subject,
-          htmlContent: params.htmlContent,
-          textContent: params.textContent
-        })
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return {
-          success: false,
-          message: `Brevo API Error: ${err.message || res.statusText}`,
-          providerUsed: 'Brevo API'
-        };
-      }
-
-      return {
-        success: true,
-        message: `Email resmi berhasil dikirim ke ${params.toEmail} via Brevo API.`,
-        providerUsed: 'Brevo API'
-      };
-    } catch (e: any) {
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      return {
-        success: false,
-        message: isLocal
-          ? `Email tidak dapat dikirim dari localhost (CORS). Deploy ke VPS terlebih dahulu, lalu test dari admin.jokitugasku.id/settings`
-          : `Gagal mengirim email via Brevo: ${e.message}`,
-        providerUsed: 'Brevo API'
-      };
-    }
-  }
-
-  // 3. Brevo SMTP
-  return {
-    success: true,
-    message: `(Brevo SMTP Relay ${settings.brevoSmtpHost}:${settings.brevoSmtpPort}) Notifikasi email untuk ${params.toEmail} telah disiapkan dan diverifikasi.`,
-    providerUsed: 'Brevo SMTP Relay'
-  };
 }

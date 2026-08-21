@@ -228,14 +228,25 @@ export function SettingsPage() {
 
     setTestEmailStatus({ loading: true, msg: 'Mengirim email uji coba...', type: 'idle' });
 
+    const isResend = formData.emailProvider === 'resend';
+    const apiKey = isResend ? formData.resendApiKey : formData.brevoApiKey;
+    const senderEmail = isResend ? formData.resendSenderEmail : formData.brevoSenderEmail;
+    const senderName = isResend ? formData.resendSenderName : formData.brevoSenderName;
+
     const res = await sendEmailNotification({
       toEmail: testRecipient.trim(),
       toName: 'Tester JokiTugasKu',
-      subject: 'Uji Coba Integrasi Email - JokiTugasKu',
+      provider: formData.emailProvider,
+      apiKey,
+      senderEmail,
+      senderName,
+      subject: `Uji Coba Integrasi Email [${formData.emailProvider.toUpperCase()}] - JokiTugasKu`,
       htmlContent: `
-        <h2>Halo dari JokiTugasKu!</h2>
-        <p>Email ini dikirim untuk memverifikasi konfigurasi provider <strong>${formData.emailProvider}</strong> Anda.</p>
-        <p>Waktu kirim: ${new Date().toLocaleString('id-ID')}</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+          <h2 style="color: #6366f1;">✅ Integrasi Email Berhasil!</h2>
+          <p>Email ini dikirim untuk memverifikasi konfigurasi provider <strong>${formData.emailProvider}</strong> Anda.</p>
+          <p>Waktu kirim: ${new Date().toLocaleString('id-ID')}</p>
+        </div>
       `
     });
 
