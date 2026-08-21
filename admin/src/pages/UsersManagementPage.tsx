@@ -104,26 +104,92 @@ export function UsersManagementPage() {
     // If welcome email is enabled, trigger email notification via Brevo/Resend
     if (sendWelcomeEmail) {
       const emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded: 12px;">
-          <h2 style="color: #7A35FF;">Selamat Datang di Tim JokiTugasKu</h2>
-          <p>Halo <strong>${name}</strong>,</p>
-          <p>Akun Anda telah dibuat sebagai <strong>${role === 'WORKER' ? 'Penjoki / Worker' : role === 'ADMIN_OPERATOR' ? 'CS Operator' : 'Super Admin'}</strong> di sistem internal JokiTugasKu.</p>
-          <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
-            <p style="margin: 4px 0;"><strong>URL Login:</strong> <a href="http://localhost:3001/login">http://localhost:3001/login</a></p>
-            <p style="margin: 4px 0;"><strong>Email:</strong> ${email.toLowerCase()}</p>
-            <p style="margin: 4px 0;"><strong>Password:</strong> ${password}</p>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+          <!-- Header with Brand Gradient & Logo -->
+          <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%); padding: 32px 24px; text-align: center;">
+            <div style="display: inline-block; background-color: #ffffff; padding: 10px 20px; border-radius: 12px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <span style="font-size: 20px; font-weight: 900; color: #4f46e5; letter-spacing: -0.5px;">JokiTugasKu<span style="color: #9333ea;">.id</span></span>
+            </div>
+            <h1 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.5px;">
+              Selamat Bergabung di Tim JokiTugasKu!
+            </h1>
+            <p style="color: #e0e7ff; font-size: 13px; margin: 0;">
+              Platform Layanan Asistensi Akademik &amp; Pembuatan Tugas Terpercaya
+            </p>
           </div>
-          <p style="color: #64748b; font-size: 12px;">Harap segera login dan simpan kredensial ini dengan aman.</p>
+
+          <!-- Body Content -->
+          <div style="padding: 28px 24px; color: #1e293b;">
+            <p style="font-size: 15px; line-height: 1.6; margin-top: 0;">
+              Halo <strong>${name}</strong>,
+            </p>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569;">
+              Selamat! Anda telah resmi didaftarkan sebagai <strong>${role === 'WORKER' ? 'Penjoki / Academic Worker' : role === 'ADMIN_OPERATOR' ? 'CS & Operasional Operator' : 'Administrator'}</strong> di sistem internal <strong>JokiTugasKu.id</strong>.
+            </p>
+
+            <!-- Credentials Card -->
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0;">
+              <h3 style="color: #4f46e5; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">
+                🔑 Kredensial Akses Akun Anda:
+              </h3>
+              <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; width: 140px;"><strong>Portal Login:</strong></td>
+                  <td style="padding: 6px 0; font-weight: 600;"><a href="https://admin.jokitugasku.id/login" style="color: #4f46e5; text-decoration: none;">https://admin.jokitugasku.id/login</a></td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;"><strong>Email / Username:</strong></td>
+                  <td style="padding: 6px 0; font-weight: 700; color: #0f172a;">${email.toLowerCase()}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;"><strong>Password Akun:</strong></td>
+                  <td style="padding: 6px 0; font-weight: 700; color: #7c3aed; font-family: monospace; font-size: 15px;">${password}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;"><strong>Peran / Role:</strong></td>
+                  <td style="padding: 6px 0; font-weight: 600; color: #059669;">${role === 'WORKER' ? 'Worker (Penjoki)' : role === 'ADMIN_OPERATOR' ? 'CS Operator' : 'Super Admin'}</td>
+                </tr>
+                ${specialization ? `
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;"><strong>Keahlian:</strong></td>
+                  <td style="padding: 6px 0; font-weight: 600; color: #0f172a;">${specialization}</td>
+                </tr>
+                ` : ''}
+              </table>
+            </div>
+
+            <!-- Login Action Button -->
+            <div style="text-align: center; margin: 28px 0 20px 0;">
+              <a href="https://admin.jokitugasku.id/login" style="display: inline-block; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 10px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);">
+                Masuk ke Portal Dashboard &rarr;
+              </a>
+            </div>
+
+            <!-- Security Instructions -->
+            <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-top: 24px;">
+              <p style="font-size: 12px; color: #1e40af; margin: 0; line-height: 1.5;">
+                🔒 <strong>Keamanan &amp; Privasi Data:</strong> Jaga kerahasiaan kredensial ini. Jangan bagikan email dan password kepada siapapun.
+              </p>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; text-align: center; font-size: 11px; color: #94a3b8;">
+            <p style="margin: 0 0 4px 0;">&copy; ${new Date().getFullYear()} <strong>JokiTugasKu.id</strong>. Hak Cipta Dilindungi.</p>
+            <p style="margin: 0;">Layanan Bantuan &amp; Konsultasi: <a href="https://wa.me/62895320603421" style="color: #4f46e5; text-decoration: none;">+62 895-3206-03421</a></p>
+          </div>
         </div>
       `;
 
       sendEmailNotification({
         toEmail: email.trim(),
         toName: name.trim(),
-        subject: `Kredensial Akun ${role === 'WORKER' ? 'Worker' : 'Admin'} JokiTugasKu`,
+        subject: `🎉 Selamat Bergabung di JokiTugasKu — Kredensial Akun ${role === 'WORKER' ? 'Worker' : 'Admin'}`,
         htmlContent: emailHtml
       }).then(res => {
-        console.log('[Email Dispatch Result]', res);
+        if (!res.success) {
+          console.warn('[Email Warning]', res.message);
+        }
       });
     }
 

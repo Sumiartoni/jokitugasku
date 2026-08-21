@@ -77,14 +77,11 @@ npm install
 npm run build
 cd ..
 
-# 5. Jalankan / Reload Backend API Server via PM2
-echo "⚡ [5/6] Menjalankan Server Backend via PM2..."
+# 5. Jalankan / Restart Backend API Server via PM2
+echo "⚡ [5/6] Memperbarui dan Menjalankan Server Backend via PM2..."
 cd server
-if pm2 describe jokitugasku-api > /dev/null 2>&1; then
-    pm2 reload jokitugasku-api
-else
-    pm2 start dist/index.js --name jokitugasku-api
-fi
+pm2 delete jokitugasku-api > /dev/null 2>&1 || true
+pm2 start dist/index.js --name jokitugasku-api --time
 pm2 save
 cd ..
 
