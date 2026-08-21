@@ -11,6 +11,7 @@ import { emailRouter } from './routes/email.routes';
 import { tasksRouter } from './routes/tasks.routes';
 import { leadsRouter } from './routes/leads.routes';
 import { articlesRouter } from './routes/articles.routes';
+import { sitemapRouter } from './routes/sitemap.routes';
 
 dotenv.config();
 
@@ -48,7 +49,12 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 4. Rate Limiting (100 requests per minute per IP for general endpoints)
+// 4. Real-time dynamic sitemap (Publicly accessible with zero cache)
+app.use('/sitemap.xml', sitemapRouter);
+app.use('/api/sitemap.xml', sitemapRouter);
+app.use('/api/sitemap', sitemapRouter);
+
+// 5. Rate Limiting (100 requests per minute per IP for general endpoints)
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
@@ -61,7 +67,7 @@ const generalLimiter = rateLimit({
 });
 app.use('/api/', generalLimiter);
 
-// 5. Health Check Endpoint
+// 6. Health Check Endpoint
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({
     status: 'UP',
@@ -70,7 +76,7 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// 6. Mount API Routers
+// 7. Mount API Routers
 app.use('/api/auth', authRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/ai', aiRouter);
