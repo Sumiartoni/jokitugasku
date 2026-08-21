@@ -12,7 +12,8 @@ import {
   Sparkles,
   ExternalLink,
   CheckCircle2,
-  FolderOpen
+  FolderOpen,
+  FileText
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -23,19 +24,42 @@ import { LiveClockBadge } from '@/components/ui/LiveClockBadge';
 export function DashboardPage() {
   const { tasks } = useTasks();
   const { usersList } = useAuth();
+  const [articlesCount, setArticlesCount] = useState<number>(0);
+  const [leads, setLeads] = useState<any[]>([]);
 
   useEffect(() => {
     document.title = 'Dashboard Super Admin - JokiTugasKu';
-  }, []);
 
-  const [leads, setLeads] = useState<any[]>(() => {
-    try {
-      const raw = localStorage.getItem('jt_crm_leads');
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
+    // Fetch real articles count
+    fetch('/api/articles')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setArticlesCount(data.data.filter((a: any) => a.status === 'PUBLISHED').length);
+        }
+      })
+      .catch(() => {});
+
+    // Fetch real CRM leads
+    fetch('/api/leads')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setLeads(data.data);
+        } else {
+          try {
+            const raw = localStorage.getItem('jt_crm_leads');
+            if (raw) setLeads(JSON.parse(raw));
+          } catch {}
+        }
+      })
+      .catch(() => {
+        try {
+          const raw = localStorage.getItem('jt_crm_leads');
+          if (raw) setLeads(JSON.parse(raw));
+        } catch {}
+      });
+  }, []);
 
   const activeTasksCount = tasks.filter(t => ['IN_PROGRESS', 'REVIEW', 'REVISION', 'ASSIGNED'].includes(t.status)).length;
   const reviewTasksCount = tasks.filter(t => t.status === 'REVIEW').length;
@@ -43,10 +67,10 @@ export function DashboardPage() {
 
   const kpis = [
     { 
-      label: 'Organic Traffic Google', 
-      value: '6,207', 
-      change: 'Impresi Organik', 
-      icon: TrendingUp, 
+      label: 'Artikel Blog SEO (Live)', 
+      value: `${articlesCount}`, 
+      change: articlesCount > 0 ? `${articlesCount} Artikel Terbit` : '0 Terpublikasi', 
+      icon: FileText, 
       color: 'text-brand-600', 
       bg: 'bg-brand-50' 
     },

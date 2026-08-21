@@ -34,9 +34,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { name: 'Manajemen User & Worker', href: '/users', icon: Users, badge: 'Super Admin', superAdminOnly: true },
     { name: 'AI Blog Writer (Groq)', href: '/ai-blog', icon: Sparkles, badge: 'AI' },
     { name: 'Kelola Artikel Blog', href: '/articles', icon: FileText, badge: 'Blog' },
-    { name: 'SEO Center', href: '/seo', icon: Search, badge: 'P0' },
-    { name: 'CRM WhatsApp Leads', href: '/crm', icon: MessageCircle, badge: '384' },
-    { name: 'Task Pipeline', href: '/tasks', icon: Layers, badge: '18' },
+    { name: 'SEO Center', href: '/seo', icon: Search, badge: 'SEO' },
+    { name: 'CRM WhatsApp Leads', href: '/crm', icon: MessageCircle, badge: 'CRM' },
+    { name: 'Task Pipeline', href: '/tasks', icon: Layers, badge: 'Pipeline' },
     { name: 'Content CMS', href: '/content', icon: FileText },
     { name: 'Settings & Integrasi', href: '/settings', icon: Settings },
   ];
