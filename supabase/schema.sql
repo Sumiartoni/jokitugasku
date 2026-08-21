@@ -242,3 +242,4 @@ CREATE POLICY "Full access for authenticated users to articles" ON public.articl
 ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.crm_leads;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.articles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.settings;
