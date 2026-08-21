@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { SiteConfig, defaultSiteConfig, fetchSiteConfig, getSiteConfig } from '@/config/site';
+import { SiteConfig, defaultSiteConfig, fetchSiteConfig, getSiteConfig, updateCachedSiteConfig } from '@/config/site';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const SiteConfigContext = createContext<SiteConfig>(defaultSiteConfig);
@@ -13,7 +13,10 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     // 1. Initial fetch from Supabase
-    fetchSiteConfig().then((c) => setConfig(c));
+    fetchSiteConfig().then((c) => {
+      updateCachedSiteConfig(c);
+      setConfig(c);
+    });
 
     // 2. Realtime listener for live updates from Admin Settings
     if (!isSupabaseConfigured || !supabase) return;
@@ -39,6 +42,7 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
               operatingHours: s.operatingHours || defaultSiteConfig.operatingHours,
               emailPlaceholder: s.contactEmail || defaultSiteConfig.emailPlaceholder,
             };
+            updateCachedSiteConfig(updated);
             setConfig(updated);
           }
         }

@@ -93,6 +93,10 @@ export async function fetchSiteConfig(): Promise<SiteConfig> {
  * Get site config synchronously (returns cached or default).
  * For initial render — use fetchSiteConfig() for guaranteed live data.
  */
+export function updateCachedSiteConfig(config: SiteConfig) {
+  _cachedConfig = config;
+}
+
 export function getSiteConfig(): SiteConfig {
   return _cachedConfig || defaultSiteConfig;
 }

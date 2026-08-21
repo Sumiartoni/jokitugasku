@@ -92,9 +92,13 @@ export function SettingsPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    saveAppSettings(formData);
+    setIsSaving(true);
+    await saveAppSettings(formData);
+    setIsSaving(false);
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 3500);
   };

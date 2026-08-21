@@ -123,7 +123,7 @@ export async function fetchSettingsFromSupabase(): Promise<AppSettings> {
  * Save settings to both localStorage (instant) and Supabase (persistent, cross-app).
  * Landing page reads from Supabase, so this is how Admin -> Landing sync works.
  */
-export function saveAppSettings(settings: Partial<AppSettings>): AppSettings {
+export async function saveAppSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
   const current = getAppSettings();
   const updated = { ...current, ...settings };
   
@@ -131,7 +131,7 @@ export function saveAppSettings(settings: Partial<AppSettings>): AppSettings {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
 
   // 2. Save to Supabase (persistent, syncs to landing page)
-  syncSettingsToSupabase(updated);
+  await syncSettingsToSupabase(updated);
 
   // 3. Cross-window live broadcast
   try {
@@ -145,22 +145,32 @@ export function saveAppSettings(settings: Partial<AppSettings>): AppSettings {
 }
 
 /**
- * Push settings to Supabase settings table (fire-and-forget).
+ * Push settings to Supabase settings table.
  */
-async function syncSettingsToSupabase(settings: AppSettings): Promise<void> {
+async function syncSettingsToSupabase(settings: AppSettings): Promise<boolean> {
   try {
     const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase) {
+      console.warn('Supabase is not configured in settings.ts');
+      return false;
+    }
 
-    await supabase
+    const { error } = await supabase
       .from('settings')
       .upsert({
         key: 'app_settings',
         value: settings,
         updated_at: new Date().toISOString()
       }, { onConflict: 'key' });
-  } catch {
-    console.warn('Failed to sync settings to Supabase');
+
+    if (error) {
+      console.error('Error saving settings to Supabase:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to sync settings to Supabase:', err);
+    return false;
   }
 }
 
