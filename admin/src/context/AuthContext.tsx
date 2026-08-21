@@ -25,10 +25,10 @@ interface AuthContextType {
   usersList: UserAccount[];
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  addUser: (newUser: Omit<UserAccount, 'id' | 'createdAt'>) => { success: boolean; error?: string; user?: UserAccount };
-  updateUser: (id: string, updates: Partial<UserAccount>) => { success: boolean; error?: string };
-  deleteUser: (id: string) => { success: boolean; error?: string };
-  resetUserPassword: (id: string, newPassword: string) => { success: boolean; error?: string };
+  addUser: (newUser: Omit<UserAccount, 'id' | 'createdAt'>) => Promise<{ success: boolean; error?: string; user?: UserAccount }>;
+  updateUser: (id: string, updates: Partial<UserAccount>, email?: string) => Promise<{ success: boolean; error?: string }>;
+  deleteUser: (id: string, email?: string) => Promise<{ success: boolean; error?: string }>;
+  resetUserPassword: (id: string, newPassword: string, email?: string) => Promise<{ success: boolean; error?: string }>;
   clearDemoWorkers: () => void;
   resetDemoAccounts: () => void;
 }
@@ -374,12 +374,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchLiveUsers]);
 
   // Update existing user
-  const updateUser = useCallback(async (id: string, updates: Partial<UserAccount>): Promise<{ success: boolean; error?: string }> => {
+  const updateUser = useCallback(async (id: string, updates: Partial<UserAccount>, email?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const res = await fetch(`/api/auth/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
+        body: JSON.stringify({ ...updates, email: email || updates.email })
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -387,10 +387,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
 
-    setUsersList(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
+    setUsersList(prev => prev.map(u => (u.id === id || (email && u.email === email) ? { ...u, ...updates } : u)));
 
     // Sync current session if logged-in user was updated
-    if (user && user.id === id) {
+    if (user && (user.id === id || (email && user.email === email))) {
       const syncUser: AuthUser = { ...user, ...updates };
       setUser(syncUser);
       const session = getStoredSession();
@@ -404,13 +404,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, fetchLiveUsers]);
 
   // Delete user
-  const deleteUser = useCallback(async (id: string): Promise<{ success: boolean; error?: string }> => {
-    if (user && user.id === id) {
+  const deleteUser = useCallback(async (id: string, email?: string): Promise<{ success: boolean; error?: string }> => {
+    if (user && (user.id === id || (email && user.email === email))) {
       return { success: false, error: 'Anda tidak dapat menghapus akun Anda sendiri saat sedang login.' };
     }
 
     try {
-      const res = await fetch(`/api/auth/users/${id}`, {
+      const url = email ? `/api/auth/users/${id}?email=${encodeURIComponent(email)}` : `/api/auth/users/${id}`;
+      const res = await fetch(url, {
         method: 'DELETE'
       });
       const data = await res.json();
@@ -419,18 +420,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
 
-    setUsersList(prev => prev.filter(u => u.id !== id));
+    setUsersList(prev => prev.filter(u => u.id !== id && (!email || u.email !== email)));
+    try {
+      const local = getStoredUsers().filter(u => u.id !== id && (!email || u.email !== email));
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(local));
+    } catch {}
+
     fetchLiveUsers();
     return { success: true };
   }, [user, fetchLiveUsers]);
 
   // Reset password
-  const resetUserPassword = useCallback(async (id: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+  const resetUserPassword = useCallback(async (id: string, newPassword: string, email?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const res = await fetch(`/api/auth/users/${id}/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword })
+        body: JSON.stringify({ newPassword, email })
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

@@ -331,7 +331,8 @@ authRouter.post('/users', async (req: Request, res: Response) => {
 authRouter.put('/users/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, role, phone, specialization, status } = req.body;
+    const { name, role, phone, specialization, status, email } = req.body;
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
     const updates: Record<string, any> = {
       updated_at: new Date().toISOString()
@@ -342,15 +343,23 @@ authRouter.put('/users/:id', async (req: Request, res: Response) => {
     if (specialization !== undefined) updates.specialization = specialization ? specialization.trim() : null;
     if (status) updates.status = status;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      return res.status(400).json({ success: false, message: error.message });
+    let data = null;
+    if (isUUID) {
+      const res = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      data = res.data;
+    } else if (email) {
+      const res = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('email', email.trim().toLowerCase())
+        .select()
+        .single();
+      data = res.data;
     }
 
     return res.json({
@@ -369,7 +378,7 @@ authRouter.put('/users/:id', async (req: Request, res: Response) => {
 authRouter.post('/users/:id/reset-password', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { newPassword } = req.body;
+    const { newPassword, email } = req.body;
 
     if (!newPassword || newPassword.trim().length < 6) {
       return res.status(400).json({
@@ -378,22 +387,27 @@ authRouter.post('/users/:id/reset-password', async (req: Request, res: Response)
       });
     }
 
-    // Get user email from profiles
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('id', id)
-      .single();
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let targetEmail = (email || '').trim().toLowerCase();
 
-    if (error || !profile) {
+    if (isUUID) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', id)
+        .single();
+      if (profile?.email) {
+        targetEmail = profile.email.toLowerCase();
+      }
+    }
+
+    if (!targetEmail) {
       return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
     }
 
-    const cleanEmail = profile.email.toLowerCase();
     const passwordHash = bcrypt.hashSync(newPassword.trim(), 10);
-
     const vault = await getCredentialVault();
-    vault[cleanEmail] = {
+    vault[targetEmail] = {
       passwordHash,
       updatedAt: new Date().toISOString()
     };
@@ -401,7 +415,7 @@ authRouter.post('/users/:id/reset-password', async (req: Request, res: Response)
 
     return res.json({
       success: true,
-      message: `Password untuk ${profile.email} berhasil direset.`
+      message: `Password untuk ${targetEmail} berhasil direset.`
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
@@ -409,47 +423,53 @@ authRouter.post('/users/:id/reset-password', async (req: Request, res: Response)
 });
 
 /**
- * DELETE /api/auth/users/:id: Delete user account
+ * DELETE /api/auth/users/:id: Delete user account (Supports both UUID and email)
  */
 authRouter.delete('/users/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let targetEmail = (req.query.email as string || req.body?.email || '').trim().toLowerCase();
 
-    // Check user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email, role')
-      .eq('id', id)
-      .single();
+    if (isUUID) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, role')
+        .eq('id', id)
+        .single();
 
-    if (profile && profile.email === 'admin@jokitugasku.id') {
-      return res.status(400).json({
-        success: false,
-        message: 'Akun Super Admin utama tidak boleh dihapus.'
-      });
+      if (profile?.email) {
+        targetEmail = profile.email.toLowerCase();
+      }
+
+      if (targetEmail === 'admin@jokitugasku.id') {
+        return res.status(400).json({
+          success: false,
+          message: 'Akun Super Admin utama tidak boleh dihapus.'
+        });
+      }
+
+      await supabase.from('profiles').delete().eq('id', id);
+    } else if (targetEmail) {
+      if (targetEmail === 'admin@jokitugasku.id') {
+        return res.status(400).json({
+          success: false,
+          message: 'Akun Super Admin utama tidak boleh dihapus.'
+        });
+      }
+      await supabase.from('profiles').delete().eq('email', targetEmail);
     }
 
-    // 1. Delete from profiles table
-    const { error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      return res.status(400).json({ success: false, message: error.message });
-    }
-
-    // 2. Remove from vault
-    if (profile?.email) {
-      const cleanEmail = profile.email.toLowerCase();
+    // Remove from credential vault
+    if (targetEmail) {
       const vault = await getCredentialVault();
-      delete vault[cleanEmail];
+      delete vault[targetEmail];
       await saveCredentialVault(vault);
     }
 
     return res.json({
       success: true,
-      message: 'User berhasil dihapus dari database Supabase.'
+      message: 'User berhasil dihapus.'
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });

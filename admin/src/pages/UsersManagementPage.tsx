@@ -192,12 +192,12 @@ export function UsersManagementPage() {
   };
 
   const handleToggleStatus = async (target: UserAccount) => {
-    if (target.id === currentUser?.id) {
+    if (target.id === currentUser?.id || target.email === currentUser?.email) {
       showToast('error', 'Anda tidak dapat menonaktifkan akun sendiri.');
       return;
     }
     const newStatus = target.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-    const res = await updateUser(target.id, { status: newStatus });
+    const res = await updateUser(target.id, { status: newStatus }, target.email);
     if (res.success) {
       showToast('success', `Status ${target.name} diubah menjadi ${newStatus === 'ACTIVE' ? 'Aktif' : 'Nonaktif'}.`);
     } else {
@@ -206,10 +206,18 @@ export function UsersManagementPage() {
   };
 
   const handleDelete = async (target: UserAccount) => {
+    if (target.id === currentUser?.id || target.email === currentUser?.email) {
+      showToast('error', 'Anda tidak dapat menghapus akun Anda sendiri saat sedang login.');
+      return;
+    }
+    if (target.email === 'admin@jokitugasku.id') {
+      showToast('error', 'Akun Super Admin utama tidak boleh dihapus.');
+      return;
+    }
     if (!confirm(`Apakah Anda yakin ingin menghapus akun ${target.name} (${target.email})?`)) return;
-    const res = await deleteUser(target.id);
+    const res = await deleteUser(target.id, target.email);
     if (res.success) {
-      showToast('success', `Akun ${target.name} berhasil dihapus dari database.`);
+      showToast('success', `Akun ${target.name} berhasil dihapus.`);
     } else {
       showToast('error', res.error || 'Gagal menghapus user.');
     }
@@ -219,7 +227,7 @@ export function UsersManagementPage() {
     e.preventDefault();
     if (!targetUser || !newPassword.trim()) return;
 
-    const res = await resetUserPassword(targetUser.id, newPassword.trim());
+    const res = await resetUserPassword(targetUser.id, newPassword.trim(), targetUser.email);
     if (res.success) {
       showToast('success', `Password untuk ${targetUser.name} berhasil diubah di database.`);
       setResetModalOpen(false);
