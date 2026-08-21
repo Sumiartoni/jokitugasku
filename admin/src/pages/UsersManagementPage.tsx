@@ -37,6 +37,8 @@ export function UsersManagementPage() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [targetUser, setTargetUser] = useState<UserAccount | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State for Add User
   const [name, setName] = useState('');
@@ -56,7 +58,7 @@ export function UsersManagementPage() {
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMsg({ type, text });
-    setTimeout(() => setToastMsg(null), 4000);
+    setTimeout(() => setToastMsg(null), 5000);
   };
 
   const generateRandomPassword = () => {
@@ -76,15 +78,23 @@ export function UsersManagementPage() {
     setPhone('');
     setSpecialization('');
     setSendWelcomeEmail(true);
+    setModalError(null);
+    setIsSubmitting(false);
     setAddModalOpen(true);
   };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setModalError(null);
+
     if (!name.trim() || !email.trim() || !password.trim()) {
-      showToast('error', 'Nama, Email, dan Password wajib diisi.');
+      const err = 'Nama, Email, dan Password wajib diisi.';
+      setModalError(err);
+      showToast('error', err);
       return;
     }
+
+    setIsSubmitting(true);
 
     const result = await addUser({
       name: name.trim(),
@@ -97,7 +107,10 @@ export function UsersManagementPage() {
     });
 
     if (!result.success) {
-      showToast('error', result.error || 'Gagal menambahkan user baru.');
+      const err = result.error || 'Gagal menambahkan user baru ke database.';
+      setModalError(err);
+      showToast('error', err);
+      setIsSubmitting(false);
       return;
     }
 
@@ -260,13 +273,24 @@ export function UsersManagementPage() {
   return (
     <div className="p-6 sm:p-8 space-y-8 max-w-7xl mx-auto font-sans">
       
-      {/* Toast Notification */}
+      {/* High-Contrast Toast Notification */}
       {toastMsg && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-bold animate-in fade-in slide-in-from-top-3 ${
-          toastMsg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-rose-50 border border-rose-200 text-rose-800'
+        <div className={`fixed top-5 right-5 z-[99999] max-w-md p-4 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-bold animate-in fade-in slide-in-from-top-3 ${
+          toastMsg.type === 'success' ? 'bg-emerald-600 text-white shadow-emerald-500/20' : 'bg-rose-600 text-white shadow-rose-500/20'
         }`}>
-          {toastMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
-          <span>{toastMsg.text}</span>
+          {toastMsg.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-white" />
+          ) : (
+            <AlertCircle className="w-5 h-5 flex-shrink-0 text-white" />
+          )}
+          <span className="leading-snug">{toastMsg.text}</span>
+          <button 
+            type="button"
+            onClick={() => setToastMsg(null)} 
+            className="ml-auto text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
@@ -567,17 +591,26 @@ export function UsersManagementPage() {
                 </label>
               </div>
 
+              {/* Inline Error Alert inside Modal */}
+              {modalError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-start gap-2.5 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="leading-snug">{modalError}</div>
+                </div>
+              )}
+
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-ink-secondary hover:bg-slate-100 transition-colors"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-ink-secondary hover:bg-slate-100 transition-colors disabled:opacity-50"
                 >
                   Batal
                 </button>
-                <Button type="submit" variant="primary" size="sm" className="gap-2">
+                <Button type="submit" variant="primary" size="sm" className="gap-2" disabled={isSubmitting}>
                   <UserPlus className="w-4 h-4" />
-                  <span>Simpan & Daftarkan User</span>
+                  <span>{isSubmitting ? 'Menyimpan ke Database...' : 'Simpan & Daftarkan User'}</span>
                 </Button>
               </div>
             </form>
