@@ -97,7 +97,7 @@ articlesRouter.post('/', async (req: Request, res: Response) => {
 /**
  * Admin: Update article
  */
-articlesRouter.put('/:id', requireAuth, async (req: Request, res: Response) => {
+articlesRouter.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const articleData = req.body;
@@ -133,7 +133,7 @@ articlesRouter.put('/:id', requireAuth, async (req: Request, res: Response) => {
 /**
  * Admin: Delete article
  */
-articlesRouter.delete('/:id', requireAuth, async (req: Request, res: Response) => {
+articlesRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
