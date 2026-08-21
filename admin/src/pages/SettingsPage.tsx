@@ -21,7 +21,8 @@ import {
   Database,
   Users,
   Layers,
-  FileText
+  FileText,
+  ExternalLink
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -40,7 +41,7 @@ export function SettingsPage() {
   const { tasks, clearAllTasks, resetSampleTasks } = useTasks();
   const { usersList, clearDemoWorkers, resetDemoAccounts } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'groq' | 'email' | 'data'>('whatsapp');
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'groq' | 'email' | 'google' | 'data'>('whatsapp');
   const [formData, setFormData] = useState<AppSettings>(getAppSettings());
 
   useEffect(() => {
@@ -127,7 +128,7 @@ export function SettingsPage() {
       return;
     }
 
-    setTestGroqStatus({ loading: true, msg: 'Memvalidasi API Key...', type: 'idle' });
+    setTestGroqStatus({ loading: true, msg: 'Menghubungi server Groq...', type: 'idle' });
 
     try {
       // Step 1: Validate the API key by listing available models (FREE - no quota used)
@@ -335,7 +336,7 @@ export function SettingsPage() {
           Pengaturan Global, Integrasi &amp; Manajemen Data
         </h1>
         <p className="text-xs sm:text-sm text-ink-secondary mt-0.5">
-          Konfigurasi WhatsApp Business, Provider AI (Groq), Email SMTP/API, dan pembersihan data demo sebelum live testing.
+          Konfigurasi WhatsApp Business, Provider AI (Groq), Google Analytics &amp; Search Console, Email SMTP/API, dan pembersihan data demo.
         </p>
       </div>
 
@@ -349,7 +350,7 @@ export function SettingsPage() {
           }`}
         >
           <MessageCircle className="w-4 h-4" />
-          <span>WhatsApp & Kontak Bisnis</span>
+          <span>WhatsApp &amp; Kontak Bisnis</span>
         </button>
 
         <button
@@ -361,6 +362,17 @@ export function SettingsPage() {
         >
           <Sparkles className="w-4 h-4" />
           <span>Groq AI (Blog Writer)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('google')}
+          className={`px-4 py-2 rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'google' ? 'bg-brand-500 text-white shadow-sm' : 'bg-white text-ink-secondary hover:text-ink-primary'
+          }`}
+        >
+          <Globe className="w-4 h-4" />
+          <span>Google Analytics &amp; Search Console</span>
         </button>
 
         <button
@@ -730,6 +742,89 @@ export function SettingsPage() {
                   <span>{testEmailStatus.msg}</span>
                 </div>
               )}
+            </Card>
+          </div>
+        )}
+
+        {/* TAB GOOGLE: GOOGLE ANALYTICS 4 & SEARCH CONSOLE */}
+        {activeTab === 'google' && (
+          <div className="space-y-6 animate-in fade-in">
+            <Card className="p-6 sm:p-8 space-y-6 border-slate-200 shadow-card">
+              <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-base text-ink-primary">Integrasi Google Analytics 4 &amp; Google Search Console</h2>
+                  <p className="text-xs text-ink-secondary">Dapatkan data traffic asli, impresi pencarian Google, dan live pengunjung secara langsung.</p>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                {/* GA4 Measurement ID */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-ink-primary uppercase tracking-wider">
+                    Google Analytics 4 (GA4) Measurement ID:
+                  </label>
+                  <p className="text-xs text-ink-muted">
+                    Format: <code className="font-mono text-brand-600 bg-brand-50 px-1 py-0.5 rounded">G-XXXXXXXXXX</code> (Dapatkan dari Google Analytics &gt; Admin &gt; Data Streams).
+                  </p>
+                  <input
+                    type="text"
+                    value={formData.gaMeasurementId || ''}
+                    onChange={(e) => handleChange('gaMeasurementId', e.target.value.trim())}
+                    placeholder="Contoh: G-3K7D8J9W2Q"
+                    className="w-full p-3 rounded-xl border border-slate-200 focus:border-brand-500 text-xs text-ink-primary font-mono bg-slate-50/50"
+                  />
+                </div>
+
+                {/* Google Search Console Verification */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-ink-primary uppercase tracking-wider">
+                    Google Search Console Site Verification Tag:
+                  </label>
+                  <p className="text-xs text-ink-muted">
+                    Masukkan token / content tag HTML dari Google Search Console untuk verifikasi otomatis domain <code className="font-mono text-slate-700 bg-slate-100 px-1 py-0.5 rounded">https://jokitugasku.id</code>.
+                  </p>
+                  <input
+                    type="text"
+                    value={formData.googleSiteVerification || ''}
+                    onChange={(e) => handleChange('googleSiteVerification', e.target.value.trim())}
+                    placeholder="Contoh: abcd1234efgh5678ijklmnop..."
+                    className="w-full p-3 rounded-xl border border-slate-200 focus:border-brand-500 text-xs text-ink-primary font-mono bg-slate-50/50"
+                  />
+                </div>
+              </div>
+
+              {/* Status & Links Guide */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-ink-primary">Status Pelacakan Google:</span>
+                  <Badge variant={formData.gaMeasurementId ? 'success' : 'neutral'}>
+                    {formData.gaMeasurementId ? 'GA4 Active Tag' : 'Standby / Belum Terpasang'}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <a
+                    href="https://search.google.com/search-console"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-ink-primary font-bold inline-flex items-center gap-1.5 shadow-2xs transition-colors"
+                  >
+                    <span>Buka Google Search Console</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                  </a>
+                  <a
+                    href="https://analytics.google.com/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-ink-primary font-bold inline-flex items-center gap-1.5 shadow-2xs transition-colors"
+                  >
+                    <span>Buka Google Analytics (GA4)</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                  </a>
+                </div>
+              </div>
             </Card>
           </div>
         )}

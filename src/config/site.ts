@@ -9,6 +9,8 @@ export interface SiteConfig {
   whatsappDisplay: string;
   emailPlaceholder: string;
   operatingHours: string;
+  gaMeasurementId?: string;
+  googleSiteVerification?: string;
   socials: {
     instagram: string;
     tiktok: string;
@@ -79,6 +81,8 @@ export async function fetchSiteConfig(): Promise<SiteConfig> {
         whatsappDisplay: s.whatsappDisplay || defaultSiteConfig.whatsappDisplay,
         operatingHours: s.operatingHours || defaultSiteConfig.operatingHours,
         emailPlaceholder: s.contactEmail || defaultSiteConfig.emailPlaceholder,
+        gaMeasurementId: s.gaMeasurementId || '',
+        googleSiteVerification: s.googleSiteVerification || '',
       };
       return _cachedConfig;
     } catch {

@@ -19,6 +19,8 @@ const DEFAULT_SETTINGS = {
   resendSenderEmail: 'notifikasi@jokitugasku.id',
   resendSenderName: 'JokiTugasKu Official',
   brevoApiKey: '',
+  gaMeasurementId: '',
+  googleSiteVerification: '',
   sendWelcomeWorkerEmail: true,
   sendTaskAssignedEmail: true,
   sendArticlePublishedEmail: false,
@@ -40,7 +42,9 @@ function syncEnvFile(settings: any) {
       RESEND_API_KEY: settings.resendApiKey || '',
       BREVO_API_KEY: settings.brevoApiKey || '',
       WHATSAPP_NUMBER: settings.whatsappNumber || '',
-      CONTACT_EMAIL: settings.contactEmail || ''
+      CONTACT_EMAIL: settings.contactEmail || '',
+      GA_MEASUREMENT_ID: settings.gaMeasurementId || '',
+      GOOGLE_SITE_VERIFICATION: settings.googleSiteVerification || ''
     };
 
     let lines = envContent.split(/\r?\n/);
@@ -80,6 +84,8 @@ settingsRouter.get('/public', async (req: Request, res: Response) => {
           whatsappDisplay: DEFAULT_SETTINGS.whatsappDisplay,
           operatingHours: DEFAULT_SETTINGS.operatingHours,
           contactEmail: DEFAULT_SETTINGS.contactEmail,
+          gaMeasurementId: DEFAULT_SETTINGS.gaMeasurementId,
+          googleSiteVerification: DEFAULT_SETTINGS.googleSiteVerification,
         }
       });
     }
@@ -92,6 +98,8 @@ settingsRouter.get('/public', async (req: Request, res: Response) => {
         whatsappDisplay: s.whatsappDisplay || DEFAULT_SETTINGS.whatsappDisplay,
         operatingHours: s.operatingHours || DEFAULT_SETTINGS.operatingHours,
         contactEmail: s.contactEmail || DEFAULT_SETTINGS.contactEmail,
+        gaMeasurementId: s.gaMeasurementId || DEFAULT_SETTINGS.gaMeasurementId,
+        googleSiteVerification: s.googleSiteVerification || DEFAULT_SETTINGS.googleSiteVerification,
       }
     });
   } catch (err: any) {
@@ -102,6 +110,8 @@ settingsRouter.get('/public', async (req: Request, res: Response) => {
         whatsappDisplay: DEFAULT_SETTINGS.whatsappDisplay,
         operatingHours: DEFAULT_SETTINGS.operatingHours,
         contactEmail: DEFAULT_SETTINGS.contactEmail,
+        gaMeasurementId: DEFAULT_SETTINGS.gaMeasurementId,
+        googleSiteVerification: DEFAULT_SETTINGS.googleSiteVerification,
       }
     });
   }

@@ -36,6 +36,10 @@ export interface AppSettings {
   brevoSenderEmail: string;
   brevoSenderName: string;
 
+  // Google Analytics & Search Console
+  gaMeasurementId: string;
+  googleSiteVerification: string;
+
   // Automated Email Triggers
   sendWelcomeWorkerEmail: boolean;
   sendTaskAssignedEmail: boolean;
@@ -58,7 +62,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   groqMaxTokens: 3500,
   groqSystemPrompt: 'Anda adalah pakar penulisan artikel akademik, edukasi, dan SEO spesialis brand JokiTugasKu. Tuliskan artikel komprehensif, terstruktur, berbasis riset, faktual, dan ramah SEO dengan gaya bahasa bahasa Indonesia formal namun mudah dipahami oleh mahasiswa dan pelajar.',
 
-  // Email Provider
+  // Google
+  gaMeasurementId: '',
+  googleSiteVerification: '',
+
+  // Email
   emailProvider: 'resend',
 
   // Resend

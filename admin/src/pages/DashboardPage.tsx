@@ -32,6 +32,8 @@ export function DashboardPage() {
   const { usersList } = useAuth();
   const [articles, setArticles] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
+  const [gaId, setGaId] = useState<string>('');
+  const [gscTag, setGscTag] = useState<string>('');
 
   useEffect(() => {
     document.title = 'Dashboard Super Admin - JokiTugasKu';
@@ -42,6 +44,17 @@ export function DashboardPage() {
       .then(data => {
         if (data.success && Array.isArray(data.data)) {
           setArticles(data.data);
+        }
+      })
+      .catch(() => {});
+
+    // Fetch public settings for GA4 / GSC status
+    fetch('/api/settings/public')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setGaId(data.data.gaMeasurementId || '');
+          setGscTag(data.data.googleSiteVerification || '');
         }
       })
       .catch(() => {});
@@ -233,6 +246,45 @@ export function DashboardPage() {
             <p className="text-[11px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block font-medium">
               {publishedArticles.length > 0 ? '✓ Auto-synced ke Sitemap' : 'Siap untuk menerbitkan artikel'}
             </p>
+          </div>
+        </div>
+
+        {/* Google Analytics 4 & Search Console Live Tracking Status */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-blue-400" />
+              <span className="font-extrabold text-sm">Google Analytics 4 &amp; Google Search Console</span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                gaId ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+              }`}>
+                {gaId ? `GA4 Aktif: ${gaId}` : 'GA4 Belum Dikonfigurasi'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-300">
+              Data traffic asli, klik organik, dan live visitor diukur langsung oleh Google. Hubungkan GA4 Measurement ID di menu Settings.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href="https://search.google.com/search-console"
+              target="_blank"
+              rel="noreferrer"
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors border border-slate-700"
+            >
+              <span>Search Console</span>
+              <ExternalLink className="w-3 h-3 text-slate-400" />
+            </a>
+            <a
+              href="https://analytics.google.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors shadow-sm"
+            >
+              <span>Analytics Live</span>
+              <ExternalLink className="w-3 h-3 text-white/70" />
+            </a>
           </div>
         </div>
 
