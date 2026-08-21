@@ -88,8 +88,20 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// 8. Start Express Server
-app.listen(PORT, () => {
+// 8. Process Safety Handlers
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ [Server Safety] Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️ [Server Safety] Unhandled Rejection:', reason);
+});
+
+// 9. Start Express Server (Bind to 0.0.0.0 for reliable local/reverse-proxy communication)
+const server = app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 JokiTugasKu Backend Server running on http://127.0.0.1:${PORT}`);
   console.log(`🔒 Security & API Key Proxy active`);
+});
+
+server.on('error', (err: any) => {
+  console.error('⚠️ [Server Network Error]:', err);
 });

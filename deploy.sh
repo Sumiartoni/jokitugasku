@@ -29,36 +29,19 @@ fi
 
 # 2. Verifikasi File Environment (.env, admin/.env, server/.env)
 echo "⚙️ [2/6] Memeriksa konfigurasi environment..."
-if [ ! -f .env ]; then
-    if [ -f .env.example ]; then
-        echo "⚠️ .env tidak ditemukan, menyalin dari .env.example..."
-        cp .env.example .env
-    fi
+if [ ! -f .env ] || ! grep -q "VITE_SUPABASE_URL" .env 2>/dev/null; then
+    echo "⚠️ Menyiapkan .env dari template..."
+    cp .env.example .env
 fi
 
-if [ ! -f admin/.env ]; then
-    if [ -f admin/.env.example ]; then
-        echo "⚠️ admin/.env tidak ditemukan, menyalin dari admin/.env.example..."
-        cp admin/.env.example admin/.env
-    fi
+if [ ! -f admin/.env ] || ! grep -q "VITE_SUPABASE_URL" admin/.env 2>/dev/null; then
+    echo "⚠️ Menyiapkan admin/.env dari template..."
+    cp admin/.env.example admin/.env
 fi
 
-if [ ! -f server/.env ]; then
-    if [ -f server/.env.example ]; then
-        echo "⚠️ server/.env tidak ditemukan, menyalin dari server/.env.example..."
-        cp server/.env.example server/.env
-    fi
-fi
-
-# Auto-fix URL typo in existing .env files if present
-if [ -f .env ]; then
-    sed -i 's/harmnnijndrmzmxvwjbj/harmnrijndrnzmxvwjbj/g' .env
-fi
-if [ -f admin/.env ]; then
-    sed -i 's/harmnnijndrmzmxvwjbj/harmnrijndrnzmxvwjbj/g' admin/.env
-fi
-if [ -f server/.env ]; then
-    sed -i 's/harmnnijndrmzmxvwjbj/harmnrijndrnzmxvwjbj/g' server/.env
+if [ ! -f server/.env ] || ! grep -q "SUPABASE_URL" server/.env 2>/dev/null; then
+    echo "⚠️ Menyiapkan server/.env dari template..."
+    cp server/.env.example server/.env
 fi
 
 # 3. Install dependencies & build backend server
@@ -101,21 +84,23 @@ sudo cp -r admin/dist $TARGET_DIR/admin/
 sudo chown -R www-data:www-data $TARGET_DIR
 sudo chmod -R 755 $TARGET_DIR
 
-# Selalu perbarui konfigurasi Nginx agar reverse proxy /api/ aktif
-echo "📋 Memperbarui virtual host Nginx..."
-sudo cp nginx/jokitugasku.conf /etc/nginx/sites-available/
-sudo ln -sf /etc/nginx/sites-available/jokitugasku.conf /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
-
-# Test & Reload Nginx
-sudo nginx -t
-sudo systemctl reload nginx
+# Hanya update jokitugasku.conf jika belum ada sertifikat Certbot SSL aktif agar HTTPS tidak hilang
+if [ -f /etc/letsencrypt/live/jokitugasku.id/fullchain.pem ] || [ -f /etc/letsencrypt/live/admin.jokitugasku.id/fullchain.pem ]; then
+    echo "🔒 Konfigurasi SSL Certbot terdeteksi aktif, mempertahankan sertifikat HTTPS..."
+    sudo nginx -t && sudo systemctl reload nginx
+else
+    echo "📋 Menerapkan virtual host Nginx awal (HTTP)..."
+    sudo cp nginx/jokitugasku.conf /etc/nginx/sites-available/
+    sudo ln -sf /etc/nginx/sites-available/jokitugasku.conf /etc/nginx/sites-enabled/
+    sudo rm -f /etc/nginx/sites-enabled/default
+    sudo nginx -t && sudo systemctl reload nginx
+fi
 
 echo ""
 echo "========================================================="
 echo "🎉 DEPLOYMENT BERHASIL & DEDICATED BACKEND AKTIF!"
-echo "👉 Public Site   : http://jokitugasku.id (atau https://)"
-echo "👉 Admin Hub     : http://admin.jokitugasku.id (atau https://)"
+echo "👉 Public Site   : https://jokitugasku.id"
+echo "👉 Admin Hub     : https://admin.jokitugasku.id"
 echo "👉 Backend API   : Running on port 4000 (PM2 Managed)"
 echo "========================================================="
 echo "💡 Cek status backend kapan saja dengan: pm2 status"
