@@ -73,15 +73,19 @@ export function SettingsPage() {
     }
   });
 
-  // Articles count from storage
-  const [articlesCount, setArticlesCount] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem('jt_articles_cms');
-      return raw ? JSON.parse(raw).length : 3;
-    } catch {
-      return 3;
-    }
-  });
+  // Articles count from live database
+  const [articlesCount, setArticlesCount] = useState<number>(0);
+
+  useEffect(() => {
+    fetch('/api/articles')
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && Array.isArray(res.data)) {
+          setArticlesCount(res.data.length);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const showDataAlert = (msg: string) => {
     setDataToast(msg);

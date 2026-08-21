@@ -158,19 +158,6 @@ export function AiBlogWriterPage() {
       }
     }
 
-    // 3. Local storage fallback cache
-    try {
-      const existingRaw = localStorage.getItem('jt_articles_cms');
-      const existingArticles = existingRaw ? JSON.parse(existingRaw) : [];
-      const updated = [{ ...newArticle, id: articleSlug, readTime: newArticle.read_time, contentMarkdown }, ...existingArticles.filter((a: any) => a.slug !== articleSlug)];
-      localStorage.setItem('jt_articles_cms', JSON.stringify(updated));
-
-      const channel = new BroadcastChannel('jt_sync_channel');
-      channel.postMessage({ type: 'ARTICLES_UPDATED', payload: updated });
-    } catch {
-      // Ignored
-    }
-
     setPublishSuccess(true);
     setTimeout(() => setPublishSuccess(false), 5000);
 

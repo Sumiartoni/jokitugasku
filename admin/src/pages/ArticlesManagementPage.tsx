@@ -63,6 +63,23 @@ export function ArticlesManagementPage() {
 
   const loadArticles = async () => {
     setIsLoading(true);
+
+    // 1. Try Backend API first
+    try {
+      const res = await fetch('/api/articles');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setArticles(json.data);
+          setIsLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    // 2. Fallback to Supabase client directly
     try {
       const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
       if (isSupabaseConfigured && supabase) {
@@ -71,7 +88,7 @@ export function ArticlesManagementPage() {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (!error && data) {
+        if (!error && Array.isArray(data)) {
           setArticles(data);
           setIsLoading(false);
           return;
@@ -81,27 +98,7 @@ export function ArticlesManagementPage() {
       console.error('Failed to fetch articles from Supabase', e);
     }
 
-    // Fallback to local storage
-    try {
-      const raw = localStorage.getItem('jt_articles_cms');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setArticles(parsed.map((p: any) => ({
-          id: p.id || p.slug,
-          slug: p.slug,
-          title: p.title,
-          excerpt: p.excerpt,
-          category: p.category,
-          read_time: p.readTime || p.read_time || '5 menit baca',
-          date: p.date,
-          content_markdown: p.contentMarkdown || p.content_markdown || '',
-          tags: p.tags || [],
-          status: p.status || 'PUBLISHED'
-        })));
-      }
-    } catch {
-      // Ignored
-    }
+    setArticles([]);
     setIsLoading(false);
   };
 
@@ -210,7 +207,15 @@ export function ArticlesManagementPage() {
   const handleDeleteArticle = async (id: string, title: string) => {
     if (!confirm(`Apakah Anda yakin ingin menghapus artikel "${title}"?`)) return;
 
-    // Try backend API first
+    // Optimistically remove from state immediately
+    setArticles(prev => prev.filter(a => a.id !== id && a.slug !== id));
+
+    // Clear legacy localStorage cache
+    try {
+      localStorage.removeItem('jt_articles_cms');
+    } catch {}
+
+    // 1. Try backend API first (uses service_role with 100% root privileges)
     let deleted = false;
     try {
       const token = sessionStorage.getItem('jt_auth_session') 
@@ -228,6 +233,7 @@ export function ArticlesManagementPage() {
       // Fallback
     }
 
+    // 2. Fallback to Supabase client
     if (!deleted) {
       try {
         const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
@@ -239,8 +245,7 @@ export function ArticlesManagementPage() {
       }
     }
 
-    setArticles(prev => prev.filter(a => a.id !== id));
-    showToast('Artikel berhasil dihapus.');
+    showToast('Artikel berhasil dihapus permanen.');
   };
 
   const toggleStatus = async (article: ArticleItem) => {
