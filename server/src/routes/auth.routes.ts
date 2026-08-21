@@ -46,13 +46,14 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
     let matchedUser = null;
 
-    const isSuperAdminPass = cleanEmail === DEFAULT_SUPER_ADMIN.email && (password === 'Admin@JT2026!' || password === 'Admin123!');
+    const isSuperAdminPass = cleanEmail === 'admin@jokitugasku.id' && (password === 'Admin@JT2026!' || password === 'Admin123!');
+    const isOperatorPass = cleanEmail === 'operator@jokitugasku.id' && (password === 'Operator@JT2026!' || password === 'Operator123!');
 
     if (profile) {
       // Check password
       const isMatch = profile.password_hash 
         ? bcrypt.compareSync(password, profile.password_hash)
-        : isSuperAdminPass;
+        : (isSuperAdminPass || isOperatorPass);
 
       if (isMatch) {
         matchedUser = {
@@ -72,6 +73,15 @@ authRouter.post('/login', async (req: Request, res: Response) => {
         email: DEFAULT_SUPER_ADMIN.email,
         role: DEFAULT_SUPER_ADMIN.role,
         status: DEFAULT_SUPER_ADMIN.status
+      };
+    } else if (isOperatorPass) {
+      // Operator bootstrap
+      matchedUser = {
+        id: '00000000-0000-0000-0000-000000000002',
+        name: 'CS Operator',
+        email: 'operator@jokitugasku.id',
+        role: 'ADMIN_OPERATOR',
+        status: 'ACTIVE'
       };
     }
 

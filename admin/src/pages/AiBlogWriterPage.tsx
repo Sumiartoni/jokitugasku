@@ -104,46 +104,52 @@ export function AiBlogWriterPage() {
     }
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!title || !contentMarkdown) return;
     
-    // Save to shared articles store
+    const articleSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const newArticle = {
+      slug: articleSlug,
+      title,
+      excerpt: metaDesc || 'Panduan penulisan akademik oleh JokiTugasKu.',
+      category: category || 'Panduan Akademik',
+      read_time: `${Math.max(3, Math.ceil(wordCount / 200))} menit baca`,
+      date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+      content_markdown: contentMarkdown,
+      tags: tags || [],
+      faqs: faqs || [],
+      status: 'PUBLISHED'
+    };
+
+    // 1. Save to Supabase
+    try {
+      const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
+      if (isSupabaseConfigured && supabase) {
+        await supabase
+          .from('articles')
+          .upsert(newArticle, { onConflict: 'slug' });
+      }
+    } catch (e) {
+      console.error('Failed to save to Supabase:', e);
+    }
+
+    // 2. Local fallback cache
     try {
       const existingRaw = localStorage.getItem('jt_articles_cms');
       const existingArticles = existingRaw ? JSON.parse(existingRaw) : [];
-      
-      const newArticle = {
-        id: slug || `art-${Date.now()}`,
-        slug: slug || `artikel-${Date.now()}`,
-        title,
-        excerpt: metaDesc || 'Panduan penulisan akademik oleh JokiTugasKu.',
-        category: category || 'Panduan Akademik',
-        readTime: `${Math.max(3, Math.ceil(wordCount / 200))} menit baca`,
-        date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-        contentMarkdown,
-        tags,
-        faqs,
-        status: 'PUBLISHED'
-      };
-
-      const updated = [newArticle, ...existingArticles.filter((a: any) => a.slug !== newArticle.slug)];
+      const updated = [{ ...newArticle, id: articleSlug, readTime: newArticle.read_time, contentMarkdown }, ...existingArticles.filter((a: any) => a.slug !== articleSlug)];
       localStorage.setItem('jt_articles_cms', JSON.stringify(updated));
 
-      // Broadcast channel
-      try {
-        const channel = new BroadcastChannel('jt_sync_channel');
-        channel.postMessage({ type: 'ARTICLES_UPDATED', payload: updated });
-      } catch {
-        // Ignored
-      }
+      const channel = new BroadcastChannel('jt_sync_channel');
+      channel.postMessage({ type: 'ARTICLES_UPDATED', payload: updated });
     } catch (e) {
-      console.error('Failed to sync article', e);
+      // Ignored
     }
 
     setPublishSuccess(true);
     setTimeout(() => setPublishSuccess(false), 5000);
 
-    // Optional email broadcast simulation
+    // Optional email notification
     if (settings.sendArticlePublishedEmail) {
       sendEmailNotification({
         toEmail: settings.contactEmail,

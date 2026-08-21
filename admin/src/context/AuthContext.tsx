@@ -215,7 +215,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Validate password using bcrypt (with legacy plaintext and standard alias fallback)
     const isSuperAdminPassword = cleanEmail === 'admin@jokitugasku.id' && (cleanPass === 'Admin@JT2026!' || cleanPass === 'Admin123!');
-    const isPasswordValid = isSuperAdminPassword || (foundUser.password && verifyPassword(cleanPass, foundUser.password));
+    const isOperatorPassword = cleanEmail === 'operator@jokitugasku.id' && (cleanPass === 'Operator@JT2026!' || cleanPass === 'Operator123!');
+    const isPasswordValid = isSuperAdminPassword || isOperatorPassword || (foundUser.password && verifyPassword(cleanPass, foundUser.password));
 
     if (!isPasswordValid) {
       const attemptRes = recordFailedAttempt();

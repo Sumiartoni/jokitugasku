@@ -33,6 +33,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { name: 'Dashboard KPI', href: '/', icon: BarChart3 },
     { name: 'Manajemen User & Worker', href: '/users', icon: Users, badge: 'Super Admin', superAdminOnly: true },
     { name: 'AI Blog Writer (Groq)', href: '/ai-blog', icon: Sparkles, badge: 'AI' },
+    { name: 'Kelola Artikel Blog', href: '/articles', icon: FileText, badge: 'Blog' },
     { name: 'SEO Center', href: '/seo', icon: Search, badge: 'P0' },
     { name: 'CRM WhatsApp Leads', href: '/crm', icon: MessageCircle, badge: '384' },
     { name: 'Task Pipeline', href: '/tasks', icon: Layers, badge: '18' },

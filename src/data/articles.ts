@@ -1,3 +1,5 @@
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+
 export interface ArticleItem {
   id: string;
   slug: string;
@@ -6,15 +8,15 @@ export interface ArticleItem {
   category: string;
   readTime: string;
   date: string;
-  contentMarkdown?: string;
-  tags?: string[];
+  tags: string[];
+  contentMarkdown: string;
   faqs?: Array<{ question: string; answer: string }>;
-  status?: 'PUBLISHED' | 'DRAFT';
+  status: 'PUBLISHED' | 'DRAFT';
 }
 
 export const DEFAULT_ARTICLES: ArticleItem[] = [
   {
-    id: 'panduan-format-makalah-apa-style',
+    id: 'art-001',
     slug: 'panduan-format-makalah-apa-style',
     title: 'Panduan Praktis Format Sitasi APA Style 7th Edition untuk Makalah Kuliah',
     excerpt: 'Pelajari aturan penulisan sitasi kutipan langsung, tidak langsung, dan daftar pustaka jurnal ilmiah sesuai standar internasional APA edisi ke-7.',
@@ -34,7 +36,6 @@ Dalam APA Style 7th Edition, sitasi dalam teks menggunakan format **Penulis-Tahu
 
 - **Kutipan Tidak Langsung (Parafrase):**
   > Menurut Raharjo (2024), penerapan tata kelola berbasis digital meningkatkan efisiensi operasional hingga 35%.
-  > Transformasi digital mampu meningkatkan efisiensi operasional organisasi (Raharjo, 2024).
 
 - **Kutipan dengan Dua Penulis:**
   > (Santoso & Hidayat, 2023)
@@ -51,9 +52,6 @@ Setiap sumber yang disitasi dalam tubuh teks wajib dicantumkan dalam daftar pust
 ### Contoh Jurnal Ilmiah dengan DOI:
 Prasetyo, B., Utami, D. R., & Wibowo, A. (2024). *Analisis dampak kecerdasan buatan terhadap efektivitas pembelajaran mahasiswa*. Jurnal Pendidikan Tinggi Indonesia, 12(2), 145–158. https://doi.org/10.1234/jpti.v12i2.567
 
-### Contoh Buku Teks:
-Sugiyono. (2023). *Metode penelitian kuantitatif, kualitatif, dan R&D*. Alfabeta.
-
 ---
 
 ## Kesimpulan
@@ -63,16 +61,12 @@ Kerapian sitasi dan daftar pustaka menjadi poin krusial dalam penilaian akademis
       {
         question: 'Apakah JokiTugasKu mendukung format sitasi selain APA Style?',
         answer: 'Ya, kami mendukung seluruh format sitasi akademik termasuk IEEE, Harvard, Chicago/Turabian, dan Vancouver.'
-      },
-      {
-        question: 'Apakah hasil naskah otomatis dicek menggunakan Mendeley?',
-        answer: 'Ya, daftar pustaka dapat diintegrasikan dengan Mendeley atau Microsoft Word Citations sesuai permintaan.'
       }
     ],
     status: 'PUBLISHED'
   },
   {
-    id: 'cara-menyusun-laporan-pkl-yang-rapi',
+    id: 'art-002',
     slug: 'cara-menyusun-laporan-pkl-yang-rapi',
     title: 'Struktur Baku Penyusunan Laporan PKL & Magang MBKM agar Cepat Disetujui Dosen',
     excerpt: 'Rangkuman kerangka Bab I profil instansi hingga Bab IV penutup, termasuk penulisan logbook aktivitas harian yang sistematis.',
@@ -92,17 +86,11 @@ Laporan Praktik Kerja Lapangan (PKL) atau Magang Bersertifikat Kampus Merdeka (M
 2. **BAB I Pendahuluan**: Latar belakang pemilihan tempat PKL, tujuan magang, dan manfaat bagi mahasiswa serta instansi.
 3. **BAB II Gambaran Umum Perusahaan**: Sejarah singkat, visi misi, struktur organisasi, dan deskripsi divisi kerja.
 4. **BAB III Pelaksanaan Praktik Kerja**: Deskripsi proyek utama, analisis kendala teknis, dan solusi inovatif yang diimplementasikan.
-5. **BAB IV Penutup**: Kesimpulan capaian kompetensi dan saran konstruktif untuk instansi.
-
----
-
-## Tips Penyusunan yang Efektif
-- Jangan hanya menyalin *job description*, fokuslah pada **studi kasus nyata** yang Anda selesaikan selama magang.
-- Sertakan bukti visual seperti dokumentasi foto kegiatan, diagram alur sistem, dan lampiran logbook mingguan.`,
+5. **BAB IV Penutup**: Kesimpulan capaian kompetensi dan saran konstruktif untuk instansi.`,
     status: 'PUBLISHED'
   },
   {
-    id: 'tips-presentasi-sidang-skripsi-anti-gugup',
+    id: 'art-003',
     slug: 'tips-presentasi-sidang-skripsi-anti-gugup',
     title: '7 Tips Mendesain Slide Presentasi Sidang Skripsi yang Bersih dan Terfokus',
     excerpt: 'Cara meringkas naskah tebal skripsi ke dalam 20 slide efektif dengan teknik visual storytelling dan penempatan poin penting.',
@@ -128,47 +116,77 @@ Banyak mahasiswa melakukan kesalahan dengan menumpuk paragraf panjang ke dalam s
   }
 ];
 
-const ARTICLES_STORAGE_KEY = 'jt_articles_cms';
+let _cachedArticles: ArticleItem[] = DEFAULT_ARTICLES;
+
+function mapSupabaseRow(row: any): ArticleItem {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    excerpt: row.excerpt,
+    category: row.category,
+    readTime: row.read_time || '5 menit baca',
+    date: row.date || new Date(row.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    contentMarkdown: row.content_markdown,
+    faqs: Array.isArray(row.faqs) ? row.faqs : [],
+    status: row.status || 'PUBLISHED'
+  };
+}
+
+/**
+ * Fetch published articles directly from Supabase
+ */
+export async function fetchPublishedArticles(): Promise<ArticleItem[]> {
+  try {
+    if (!isSupabaseConfigured || !supabase) return _cachedArticles;
+
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('status', 'PUBLISHED')
+      .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      return _cachedArticles;
+    }
+
+    _cachedArticles = data.map(mapSupabaseRow);
+    return _cachedArticles;
+  } catch {
+    return _cachedArticles;
+  }
+}
 
 export function getAllArticles(): ArticleItem[] {
+  return _cachedArticles;
+}
+
+export async function fetchArticleBySlug(slug: string): Promise<ArticleItem | undefined> {
+  // 1. Check in-memory cache
+  const foundInCache = _cachedArticles.find(a => a.slug === slug || a.id === slug);
+  if (foundInCache) return foundInCache;
+
+  // 2. Fetch from Supabase
   try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem(ARTICLES_STORAGE_KEY) : null;
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
+    if (!isSupabaseConfigured || !supabase) return foundInCache;
+
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (error || !data) return foundInCache;
+
+    const item = mapSupabaseRow(data);
+    _cachedArticles = [item, ..._cachedArticles.filter(a => a.slug !== item.slug)];
+    return item;
   } catch {
-    // Fallback
+    return foundInCache;
   }
-  return DEFAULT_ARTICLES;
 }
 
 export function getArticleBySlug(slug: string): ArticleItem | undefined {
-  const articles = getAllArticles();
-  return articles.find(a => a.slug === slug || a.id === slug);
-}
-
-export function saveArticle(article: ArticleItem): void {
-  const current = getAllArticles();
-  const existingIdx = current.findIndex(a => a.id === article.id || a.slug === article.slug);
-  let updated: ArticleItem[];
-
-  if (existingIdx >= 0) {
-    updated = current.map((a, idx) => idx === existingIdx ? article : a);
-  } else {
-    updated = [article, ...current];
-  }
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(ARTICLES_STORAGE_KEY, JSON.stringify(updated));
-    // Cross-origin & cross-window broadcast
-    try {
-      const channel = new BroadcastChannel('jt_sync_channel');
-      channel.postMessage({ type: 'ARTICLES_UPDATED', payload: updated });
-    } catch {
-      // Ignored
-    }
-  }
+  return _cachedArticles.find(a => a.slug === slug || a.id === slug);
 }

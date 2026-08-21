@@ -8,6 +8,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { UsersManagementPage } from '@/pages/UsersManagementPage';
 import { AiBlogWriterPage } from '@/pages/AiBlogWriterPage';
+import { ArticlesManagementPage } from '@/pages/ArticlesManagementPage';
 import { SeoCenterPage } from '@/pages/SeoCenterPage';
 import { CrmLeadsPage } from '@/pages/CrmLeadsPage';
 import { TaskManagementPage } from '@/pages/TaskManagementPage';
@@ -58,6 +59,16 @@ export function App() {
               element={
                 <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN_OPERATOR']}>
                   <AdminLayout><AiBlogWriterPage /></AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Kelola Artikel Blog (Super Admin & Operator) */}
+            <Route
+              path="/articles"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN_OPERATOR']}>
+                  <AdminLayout><ArticlesManagementPage /></AdminLayout>
                 </ProtectedRoute>
               }
             />

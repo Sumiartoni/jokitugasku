@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { 
   ChevronRight, 
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { getArticleBySlug, getAllArticles } from '@/data/articles';
+import { getArticleBySlug, getAllArticles, fetchArticleBySlug, ArticleItem } from '@/data/articles';
 import { getWhatsAppUrl } from '@/config/site';
 import { sanitizeJsonLd } from '@/utils/sanitize';
 import { Badge } from '@/components/ui/Badge';
@@ -23,9 +23,19 @@ import { Button } from '@/components/ui/Button';
 
 export function BlogDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const article = slug ? getArticleBySlug(slug) : undefined;
+  const [article, setArticle] = useState<ArticleItem | undefined>(() => slug ? getArticleBySlug(slug) : undefined);
+  const [loading, setLoading] = useState(!article);
   const allArticles = getAllArticles();
   const relatedArticles = allArticles.filter(a => a.slug !== slug).slice(0, 3);
+
+  useEffect(() => {
+    if (slug) {
+      fetchArticleBySlug(slug).then((res) => {
+        setArticle(res);
+        setLoading(false);
+      });
+    }
+  }, [slug]);
 
   useEffect(() => {
     if (article) {
@@ -39,6 +49,17 @@ export function BlogDetailPage() {
     }
     window.scrollTo(0, 0);
   }, [article]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface-mist flex items-center justify-center py-20">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-3 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-semibold text-ink-secondary">Memuat artikel...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!article) {
     return <Navigate to="/blog" replace />;

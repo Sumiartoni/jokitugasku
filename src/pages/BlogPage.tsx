@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Calendar, Clock, BookOpen, MessageCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { getWhatsAppUrl } from '@/config/site';
-import { getAllArticles, ArticleItem } from '@/data/articles';
+import { getAllArticles, fetchPublishedArticles, ArticleItem } from '@/data/articles';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -14,29 +14,10 @@ export function BlogPage() {
     document.title = 'Blog & Panduan Akademik - JokiTugasKu';
     window.scrollTo(0, 0);
 
-    // Cross-window & storage sync listener
-    const syncArticles = () => {
-      setArticles(getAllArticles());
-    };
-
-    window.addEventListener('storage', syncArticles);
-
-    let channel: BroadcastChannel | null = null;
-    try {
-      channel = new BroadcastChannel('jt_sync_channel');
-      channel.onmessage = (event) => {
-        if (event.data?.type === 'ARTICLES_UPDATED') {
-          setArticles(getAllArticles());
-        }
-      };
-    } catch {
-      // Ignored if unsupported
-    }
-
-    return () => {
-      window.removeEventListener('storage', syncArticles);
-      if (channel) channel.close();
-    };
+    // Fetch live from Supabase
+    fetchPublishedArticles().then((items) => {
+      setArticles(items);
+    });
   }, []);
 
   return (
