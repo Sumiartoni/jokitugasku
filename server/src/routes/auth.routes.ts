@@ -46,11 +46,13 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
     let matchedUser = null;
 
+    const isSuperAdminPass = cleanEmail === DEFAULT_SUPER_ADMIN.email && (password === 'Admin@JT2026!' || password === 'Admin123!');
+
     if (profile) {
       // Check password
       const isMatch = profile.password_hash 
         ? bcrypt.compareSync(password, profile.password_hash)
-        : (cleanEmail === DEFAULT_SUPER_ADMIN.email && password === 'Admin123!');
+        : isSuperAdminPass;
 
       if (isMatch) {
         matchedUser = {
@@ -62,7 +64,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
           status: profile.status
         };
       }
-    } else if (cleanEmail === DEFAULT_SUPER_ADMIN.email && password === 'Admin123!') {
+    } else if (isSuperAdminPass) {
       // Super admin bootstrap
       matchedUser = {
         id: DEFAULT_SUPER_ADMIN.id,
