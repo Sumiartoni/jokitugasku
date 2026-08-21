@@ -278,26 +278,36 @@ Menyelesaikan tugas **${cleanTopic}** dengan standar tinggi membutuhkan keteliti
 
   // Real Groq API Call
   try {
-    const prompt = `Anda adalah editor akademik & spesialis SEO senior.
-Tolong buatkan artikel blog/edukasi lengkap dalam format JSON yang valid untuk topik berikut:
-Topik: "${params.topic}"
-Kategori: "${params.category}"
-Target Pembaca: "${params.targetAudience}"
-Gaya Bahasa: "${params.tone}"
-Target Panjang: ~${params.wordCount} kata.
-Kata Kunci Tambahan: "${params.customKeywords || '-'}"
+    const prompt = `Anda adalah Lead Academic Editor & SEO Content Strategist senior untuk platform JokiTugasKu.
+Tolong buatkan artikel blog/edukasi lengkap dalam format JSON yang valid untuk parameter berikut:
+- Topik: "${params.topic}"
+- Kategori Layanan: "${params.category}"
+- Target Pembaca: "${params.targetAudience}"
+- Gaya Bahasa: "${params.tone}"
+- Target Panjang: ~${params.wordCount} kata
+- Kata Kunci Tambahan: "${params.customKeywords || '-'}"
+
+ATURAN STRUKTUR & KERAPIAN (WAJIB DIPATUHI):
+1. Bahasa Indonesia baku, ilmiah, edukatif, dan profesional.
+2. Jangan menaruh '# Judul' di dalam 'contentMarkdown' (karena judul sudah ada di header). Mulai langsung dengan '## 1. Pendahuluan & Latar Belakang'.
+3. Sertakan:
+   - Heading H2 dan H3 yang terstruktur jelas.
+   - Kotak sorotan tips: '> 💡 **Tips Praktis:** ...'
+   - Tabel Markdown komparasi atau checklist kriteria (minimal 1 tabel).
+   - Poin berpenomoran dengan kata kunci ditebalkan: '1. **Analisis Teori**: ...'
+   - Bagian penutup/kesimpulan dengan call-to-action halus ke layanan JokiTugasKu.
 
 Kembalikan HANYA JSON murni tanpa markdown formatting backtick diluarnya dengan skema berikut:
 {
-  "title": "Judul artikel yang menarik dan ramah SEO (50-60 karakter)",
+  "title": "Judul artikel yang menarik, jelas dan ramah SEO (55-65 karakter)",
   "slug": "url-slug-kebab-case",
-  "metaDescription": "Deskripsi meta 140-160 karakter yang persuasif dan mengandung kata kunci",
+  "metaDescription": "Deskripsi meta 140-160 karakter yang persuasif dan informatif",
   "category": "${params.category}",
-  "tags": ["tag1", "tag2", "tag3"],
-  "contentMarkdown": "Isi lengkap artikel dalam format Markdown kaya (Heading H2, H3, bullet point, blockquote, tabel jika perlu, dan kesimpulan).",
+  "tags": ["tag1", "tag2", "tag3", "tag4"],
+  "contentMarkdown": "Isi lengkap artikel dalam format Markdown kaya (Heading H2, H3, bullet point, blockquote, tabel, dan kesimpulan).",
   "faqs": [
-    {"question": "Pertanyaan FAQ 1", "answer": "Jawaban FAQ 1"},
-    {"question": "Pertanyaan FAQ 2", "answer": "Jawaban FAQ 2"}
+    {"question": "Pertanyaan FAQ 1", "answer": "Jawaban FAQ 1 yang jelas dan padat."},
+    {"question": "Pertanyaan FAQ 2", "answer": "Jawaban FAQ 2 yang jelas dan padat."}
   ]
 }`;
 

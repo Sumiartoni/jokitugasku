@@ -121,19 +121,44 @@ export function AiBlogWriterPage() {
       status: 'PUBLISHED'
     };
 
-    // 1. Save to Supabase
+    // 1. Try Backend API first (uses service_role key with 100% privilege)
+    let savedSuccessfully = false;
     try {
-      const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
-      if (isSupabaseConfigured && supabase) {
-        await supabase
-          .from('articles')
-          .upsert(newArticle, { onConflict: 'slug' });
+      const token = sessionStorage.getItem('jt_auth_session') 
+        ? JSON.parse(sessionStorage.getItem('jt_auth_session') || '{}').token 
+        : null;
+
+      const res = await fetch('/api/articles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(newArticle)
+      });
+      if (res.ok) {
+        savedSuccessfully = true;
       }
-    } catch (e) {
-      console.error('Failed to save to Supabase:', e);
+    } catch {
+      // Fallback
     }
 
-    // 2. Local fallback cache
+    // 2. Fallback to Supabase client directly
+    if (!savedSuccessfully) {
+      try {
+        const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
+        if (isSupabaseConfigured && supabase) {
+          const { error } = await supabase
+            .from('articles')
+            .upsert(newArticle, { onConflict: 'slug' });
+          if (!error) savedSuccessfully = true;
+        }
+      } catch (e) {
+        console.error('Failed to save to Supabase:', e);
+      }
+    }
+
+    // 3. Local storage fallback cache
     try {
       const existingRaw = localStorage.getItem('jt_articles_cms');
       const existingArticles = existingRaw ? JSON.parse(existingRaw) : [];
@@ -142,7 +167,7 @@ export function AiBlogWriterPage() {
 
       const channel = new BroadcastChannel('jt_sync_channel');
       channel.postMessage({ type: 'ARTICLES_UPDATED', payload: updated });
-    } catch (e) {
+    } catch {
       // Ignored
     }
 

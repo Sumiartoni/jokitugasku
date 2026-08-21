@@ -125,37 +125,51 @@ aiRouter.post('/generate-article', requireAdmin, async (req: Request, res: Respo
     const temperature = settings.groqTemperature || 0.7;
     const maxTokens = settings.groqMaxTokens || 3500;
 
-    const systemPrompt = `Anda adalah pakar penulisan artikel akademik, edukasi, dan SEO spesialis brand JokiTugasKu. 
-Tuliskan artikel komprehensif, terstruktur, berbasis riset, faktual, dan ramah SEO dengan gaya bahasa Indonesia formal namun mudah dipahami oleh mahasiswa dan pelajar.
+    const systemPrompt = `Anda adalah Lead Academic Editor & SEO Content Strategist senior untuk platform JokiTugasKu.
+Tugas Anda adalah menulis artikel blog akademik, panduan tugas kuliah/sekolah, dan edukasi ilmiah dengan kualitas penulisan setara jurnal dan publikasi resmi kampus.
 
-ATURAN OUTPUT:
-1. Keluarkan HANYA JSON valid tanpa teks pengantar atau penutup.
-2. Format JSON persis seperti ini:
+ATURAN STRUKTUR & KERAPIAN (WAJIB DIPATUHI):
+1. Gaya Bahasa: Bahasa Indonesia baku, ilmiah, edukatif, profesional, bebas jargon membingungkan, dan mudah dipahami mahasiswa/pelajar.
+2. Jangan pernah menaruh '# Judul' di dalam isi 'content', karena judul sudah tampil di header halaman. Mulai langsung dengan '## 1. Pendahuluan & Latar Belakang'.
+3. Format Markdown Wajib Mencakup:
+   - Heading hirarki rapi (## untuk bab utama, ### untuk sub-poin).
+   - Pemisah seksi menggunakan '---'.
+   - Kotak sorotan tips dengan format blockquote: '> 💡 **Tips Praktis:** ...'
+   - Tabel Markdown komparasi atau checklist penilaian (minimal 1 tabel per artikel).
+   - Poin berpenomoran dengan kata kunci ditebalkan: '1. **Identifikasi Variabel**: ...'
+   - Bagian penutup/kesimpulan yang merangkum solusi dan menyisipkan rekomendasi layanan JokiTugasKu secara elegan.
+4. Output HANYA JSON murni yang valid tanpa teks pembuka atau markdown wrapper di luar JSON.
+
+FORMAT JSON OUTPUT:
 {
-  "title": "Judul Artikel Menarik & SEO-Friendly",
-  "excerpt": "Ringkasan 2-3 kalimat menarik untuk preview",
+  "title": "Judul Artikel Menarik, Jelas & Ramah SEO (55-65 karakter)",
+  "slug": "url-slug-kebab-case",
+  "excerpt": "Ringkasan 2 kalimat persuasif & informatif (140-160 karakter)",
   "readTime": "5 menit baca",
-  "tags": ["Tag1", "Tag2", "Tag3"],
-  "content": "Isi lengkap artikel dalam format Markdown baku...",
+  "tags": ["Tag1", "Tag2", "Tag3", "Tag4"],
+  "content": "Isi artikel lengkap berformat Markdown...",
   "faqs": [
-    {"question": "Pertanyaan 1?", "answer": "Jawaban 1"},
-    {"question": "Pertanyaan 2?", "answer": "Jawaban 2"}
+    {"question": "Pertanyaan 1?", "answer": "Jawaban jelas dan ringkas."},
+    {"question": "Pertanyaan 2?", "answer": "Jawaban jelas dan ringkas."}
   ]
 }`;
 
-    const userPrompt = `Tuliskan artikel blog akademik lengkap:
-- Topik: ${topic}
-- Kategori: ${category}
-- Target Pembaca: ${targetAudience || 'Mahasiswa'}
-- Gaya Bahasa / Tone: ${tone || 'Formal Akademik'}
-- Perkiraan Panjang: ±${wordCount || 1000} kata
-${customKeywords ? `- Kata Kunci Wajib (Keywords): ${customKeywords}` : ''}
+    const userPrompt = `Tuliskan artikel blog akademik yang sangat rapi dan mendalam:
+- Topik: "${topic}"
+- Kategori Layanan: "${category}"
+- Target Pembaca: "${targetAudience || 'Mahasiswa & Pelajar'}"
+- Gaya Bahasa: "${tone || 'Formal Akademik'}"
+- Target Panjang: ±${wordCount || 1000} kata
+${customKeywords ? `- Kata Kunci Wajib (Keywords): "${customKeywords}"` : ''}
 
-Pastikan artikel memiliki:
-1. Heading struktur yang jelas (##, ###)
-2. Tips praktis atau studi kasus singkat
-3. Bagian kesimpulan dengan call-to-action halus ke layanan JokiTugasKu
-4. Format markdown yang rapi`;
+Pastikan artikel memiliki struktur yang kaya:
+1. ## 1. Pendahuluan & Konsep Dasar (Latar belakang fenomena dan urgensi topik)
+2. ## 2. Kerangka Kerja & Sistematika Penulisan
+3. ## 3. Langkah-Langkah Praktis / Panduan Implementasi (Disertai contoh konkret)
+4. Tabel Markdown Perbandingan / Rubrik Penilaian
+5. > 💡 **Tips Akademik Eksklusif:** (Callout blockquote bermanfaat)
+6. ## 4. Kesalahan Umum yang Harus Dihindari
+7. ## 5. Kesimpulan & Rekomendasi Solusi Tugas`;
 
     const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',

@@ -156,22 +156,49 @@ export function ArticlesManagementPage() {
       status: formStatus
     };
 
+    let saved = false;
+
+    // 1. Try Backend API
     try {
-      const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
-      if (isSupabaseConfigured && supabase) {
-        if (isEditing && currentId) {
-          await supabase
-            .from('articles')
-            .update({ ...articleData, updated_at: new Date().toISOString() })
-            .eq('id', currentId);
-        } else {
-          await supabase
-            .from('articles')
-            .upsert(articleData, { onConflict: 'slug' });
+      const token = sessionStorage.getItem('jt_auth_session') 
+        ? JSON.parse(sessionStorage.getItem('jt_auth_session') || '{}').token 
+        : null;
+
+      const url = isEditing && currentId ? `/api/articles/${currentId}` : '/api/articles';
+      const method = isEditing && currentId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(articleData)
+      });
+      if (res.ok) saved = true;
+    } catch {
+      // Fallback
+    }
+
+    // 2. Fallback to Supabase client
+    if (!saved) {
+      try {
+        const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
+        if (isSupabaseConfigured && supabase) {
+          if (isEditing && currentId) {
+            await supabase
+              .from('articles')
+              .update({ ...articleData, updated_at: new Date().toISOString() })
+              .eq('id', currentId);
+          } else {
+            await supabase
+              .from('articles')
+              .upsert(articleData, { onConflict: 'slug' });
+          }
         }
+      } catch (err) {
+        console.error('Error saving article to Supabase', err);
       }
-    } catch (err) {
-      console.error('Error saving article to Supabase', err);
     }
 
     await loadArticles();
@@ -183,13 +210,33 @@ export function ArticlesManagementPage() {
   const handleDeleteArticle = async (id: string, title: string) => {
     if (!confirm(`Apakah Anda yakin ingin menghapus artikel "${title}"?`)) return;
 
+    // Try backend API first
+    let deleted = false;
     try {
-      const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
-      if (isSupabaseConfigured && supabase) {
-        await supabase.from('articles').delete().eq('id', id);
+      const token = sessionStorage.getItem('jt_auth_session') 
+        ? JSON.parse(sessionStorage.getItem('jt_auth_session') || '{}').token 
+        : null;
+
+      const res = await fetch(`/api/articles/${id}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      if (res.ok) deleted = true;
+    } catch {
+      // Fallback
+    }
+
+    if (!deleted) {
+      try {
+        const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
+        if (isSupabaseConfigured && supabase) {
+          await supabase.from('articles').delete().eq('id', id);
+        }
+      } catch (e) {
+        console.error('Failed to delete', e);
       }
-    } catch (e) {
-      console.error('Failed to delete', e);
     }
 
     setArticles(prev => prev.filter(a => a.id !== id));
