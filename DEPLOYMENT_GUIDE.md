@@ -65,6 +65,21 @@ Di dalam folder `~/jokitugasku`:
    VITE_DEMO_MODE=false
    ```
 
+3. **Buat file `server/.env` (Dedicated Backend API)**:
+   ```bash
+   nano server/.env
+   ```
+   Isi dengan:
+   ```ini
+   PORT=4000
+   NODE_ENV=production
+   SUPABASE_URL=https://harmnrijndrnzmxvwjbj.supabase.co
+   SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhcm1ucmlqbmRybnpteHZ3amJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyMTY2MDQsImV4cCI6MjEwMjc5MjYwNH0.P5-x-2FvnduVj5L10ZnjeOtkPTt8q05lANXW14YXB2w
+   JWT_SECRET=jokitugasku_v2_super_secure_jwt_secret_key_2026_x89f
+   JWT_EXPIRES_IN=7d
+   ALLOWED_ORIGINS=https://jokitugasku.id,https://www.jokitugasku.id,https://admin.jokitugasku.id
+   ```
+
 ---
 
 ## 📌 LANGKAH 4: Eksekusi Skrip Deployment (Non-Root)

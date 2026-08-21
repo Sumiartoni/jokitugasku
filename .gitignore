@@ -10,9 +10,11 @@ lerna-debug.log*
 # Node modules & dependencies
 node_modules
 admin/node_modules
+server/node_modules
 dist
 dist-ssr
 admin/dist
+server/dist
 *.local
 
 # Editor directories and files
