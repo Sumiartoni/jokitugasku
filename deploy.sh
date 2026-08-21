@@ -63,8 +63,9 @@ cd ..
 # 5. Jalankan / Restart Backend API Server via PM2
 echo "⚡ [5/6] Memperbarui dan Menjalankan Server Backend via PM2..."
 cd server
-pm2 delete jokitugasku-api > /dev/null 2>&1 || true
-pm2 start dist/index.js --name jokitugasku-api --time
+sudo fuser -k 4000/tcp 2>/dev/null || true
+pm2 delete jokitugasku-api 2>/dev/null || true
+pm2 start dist/index.js --name jokitugasku-api --cwd "$PWD" --time
 pm2 save
 cd ..
 
@@ -84,9 +85,12 @@ sudo cp -r admin/dist $TARGET_DIR/admin/
 sudo chown -R www-data:www-data $TARGET_DIR
 sudo chmod -R 755 $TARGET_DIR
 
-# Hanya update jokitugasku.conf jika belum ada sertifikat Certbot SSL aktif agar HTTPS tidak hilang
-if [ -f /etc/letsencrypt/live/jokitugasku.id/fullchain.pem ] || [ -f /etc/letsencrypt/live/admin.jokitugasku.id/fullchain.pem ]; then
-    echo "🔒 Konfigurasi SSL Certbot terdeteksi aktif, mempertahankan sertifikat HTTPS..."
+# Deteksi SSL Certbot dengan sudo (menghindari permission denied untuk user non-root)
+if sudo test -f /etc/letsencrypt/live/jokitugasku.id/fullchain.pem; then
+    echo "🔒 Sertifikat SSL Certbot terdeteksi, menerapkan konfigurasi HTTPS aktif..."
+    sudo cp nginx/jokitugasku-ssl.conf /etc/nginx/sites-available/jokitugasku.conf
+    sudo ln -sf /etc/nginx/sites-available/jokitugasku.conf /etc/nginx/sites-enabled/
+    sudo rm -f /etc/nginx/sites-enabled/default
     sudo nginx -t && sudo systemctl reload nginx
 else
     echo "📋 Menerapkan virtual host Nginx awal (HTTP)..."
@@ -101,7 +105,7 @@ echo "========================================================="
 echo "🎉 DEPLOYMENT BERHASIL & DEDICATED BACKEND AKTIF!"
 echo "👉 Public Site   : https://jokitugasku.id"
 echo "👉 Admin Hub     : https://admin.jokitugasku.id"
-echo "👉 Backend API   : Running on port 4000 (PM2 Managed)"
+echo "👉 Backend API   : Running on port 4000 (PM2 Online)"
 echo "========================================================="
 echo "💡 Cek status backend kapan saja dengan: pm2 status"
 echo "========================================================="
