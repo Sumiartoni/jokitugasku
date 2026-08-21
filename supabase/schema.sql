@@ -200,7 +200,7 @@ VALUES
 ON CONFLICT (slug) DO NOTHING;
 
 -- ==============================================================================
--- 10. ROW LEVEL SECURITY (RLS) POLICIES
+-- 10. PRODUCTION HARDENED ROW LEVEL SECURITY (RLS) POLICIES
 -- ==============================================================================
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
@@ -209,32 +209,21 @@ ALTER TABLE public.crm_leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
--- Public Read Policies
+-- 1. Public Read-Only for Published Articles
 CREATE POLICY "Public can view published articles" ON public.articles
     FOR SELECT USING (status = 'PUBLISHED');
 
-CREATE POLICY "Public can view and manage app settings" ON public.settings
-    FOR ALL USING (true) WITH CHECK (true);
+-- 2. Public Read-Only for Settings (WhatsApp numbers, hours)
+CREATE POLICY "Public can view app settings" ON public.settings
+    FOR SELECT USING (true);
 
--- Authenticated & Anon Access for Public Website Lead Submission
+-- 3. Public Insert-Only for CRM Lead consultation form
 CREATE POLICY "Public can insert leads" ON public.crm_leads
     FOR INSERT WITH CHECK (true);
 
--- Admin Full Access Policies (Authenticated & Anon for decoupled app access)
-CREATE POLICY "Full access for authenticated users to profiles" ON public.profiles
-    FOR ALL USING (true) WITH CHECK (true);
-
-CREATE POLICY "Full access for authenticated users to tasks" ON public.tasks
-    FOR ALL USING (true) WITH CHECK (true);
-
-CREATE POLICY "Full access for authenticated users to submissions" ON public.task_submissions
-    FOR ALL USING (true) WITH CHECK (true);
-
-CREATE POLICY "Full access for authenticated users to leads" ON public.crm_leads
-    FOR ALL USING (true) WITH CHECK (true);
-
-CREATE POLICY "Full access for authenticated users to articles" ON public.articles
-    FOR ALL USING (true) WITH CHECK (true);
+-- Note: All mutations (admin updates, tasks, workers, private data) are 
+-- executed securely through the dedicated backend server using SUPABASE_SERVICE_ROLE_KEY,
+-- ensuring 100% data security and zero unauthorized external client modifications.
 
 -- ==============================================================================
 -- 11. AUTOMATIC REALTIME PUBLICATION
