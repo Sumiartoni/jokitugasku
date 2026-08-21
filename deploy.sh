@@ -65,7 +65,7 @@ echo "⚡ [5/6] Memperbarui dan Menjalankan Server Backend via PM2..."
 cd server
 sudo fuser -k 4000/tcp 2>/dev/null || true
 pm2 delete jokitugasku-api 2>/dev/null || true
-pm2 start dist/index.js --name jokitugasku-api --cwd "$PWD" --time
+pm2 start ecosystem.config.js
 pm2 save
 cd ..
 
