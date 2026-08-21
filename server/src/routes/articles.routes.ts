@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { supabase } from '../config/db';
-import { requireAdmin } from '../middleware/auth';
+import { requireAuth, requireAdmin } from '../middleware/auth';
 
 export const articlesRouter = Router();
 
@@ -93,20 +93,24 @@ articlesRouter.post('/', requireAdmin, async (req: Request, res: Response) => {
 /**
  * Admin: Update article
  */
-articlesRouter.put('/:id', requireAdmin, async (req: Request, res: Response) => {
+articlesRouter.put('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const articleData = req.body;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    const { data, error } = await supabase
-      .from('articles')
-      .update({
-        ...articleData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    let query = supabase.from('articles').update({
+      ...articleData,
+      updated_at: new Date().toISOString()
+    });
+
+    if (isUuid) {
+      query = query.eq('id', id);
+    } else {
+      query = query.eq('slug', id);
+    }
+
+    const { data, error } = await query.select().single();
 
     if (error) {
       return res.status(400).json({ success: false, message: error.message });
@@ -125,14 +129,19 @@ articlesRouter.put('/:id', requireAdmin, async (req: Request, res: Response) => 
 /**
  * Admin: Delete article
  */
-articlesRouter.delete('/:id', requireAdmin, async (req: Request, res: Response) => {
+articlesRouter.delete('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    const { error } = await supabase
-      .from('articles')
-      .delete()
-      .eq('id', id);
+    let query = supabase.from('articles').delete();
+    if (isUuid) {
+      query = query.eq('id', id);
+    } else {
+      query = query.eq('slug', id);
+    }
+
+    const { error } = await query;
 
     if (error) {
       return res.status(400).json({ success: false, message: error.message });

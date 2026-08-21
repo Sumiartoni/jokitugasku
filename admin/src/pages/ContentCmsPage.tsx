@@ -36,8 +36,20 @@ interface FaqContent {
 }
 
 export function ContentCmsPage() {
+  const [articles, setArticles] = useState<ArticleContent[]>([]);
+
   useEffect(() => {
     document.title = 'Content CMS & Page Editor - JokiTugasKu Admin';
+    fetch('/api/articles').then(r => r.json()).then(res => {
+      if (res.success && Array.isArray(res.data)) {
+        setArticles(res.data.map((a: any) => ({
+          title: a.title,
+          category: a.category || 'Umum',
+          date: a.date || new Date(a.created_at).toLocaleDateString('id-ID'),
+          status: a.status || 'PUBLISHED'
+        })));
+      }
+    }).catch(() => {});
   }, []);
 
   const [activeTab, setActiveTab] = useState<'services' | 'blog' | 'faq'>('services');
@@ -65,12 +77,6 @@ export function ContentCmsPage() {
     { title: 'Joki Proposal', slug: 'joki-proposal', target: 'Mahasiswa Skripsi & Organisasi', status: 'PUBLISHED' },
     { title: 'Joki PPT', slug: 'joki-ppt', target: 'Presenter & Mahasiswa Sidang', status: 'PUBLISHED' },
     { title: 'Joki Skripsi', slug: 'joki-skripsi', target: 'Mahasiswa Tingkat Akhir', status: 'PUBLISHED' },
-  ]);
-
-  const [articles, setArticles] = useState<ArticleContent[]>([
-    { title: 'Panduan Praktis Format Sitasi APA Style 7th Edition untuk Makalah Kuliah', category: 'Panduan Makalah', date: '15 Agt 2026', status: 'PUBLISHED' },
-    { title: 'Struktur Baku Penyusunan Laporan PKL & Magang MBKM agar Cepat Disetujui Dosen', category: 'Laporan PKL', date: '10 Agt 2026', status: 'PUBLISHED' },
-    { title: '7 Tips Mendesain Slide Presentasi Sidang Skripsi yang Bersih dan Terfokus', category: 'Presentasi & PPT', date: '05 Agt 2026', status: 'PUBLISHED' },
   ]);
 
   const [faqs, setFaqs] = useState<FaqContent[]>([
