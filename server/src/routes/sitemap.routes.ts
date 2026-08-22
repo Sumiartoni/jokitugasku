@@ -5,30 +5,43 @@ export const sitemapRouter = Router();
 
 interface StaticRoute {
   path: string;
-  changefreq: string;
+  changefreq: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
   priority: string;
 }
 
-const STATIC_ROUTES: StaticRoute[] = [
+/**
+ * 100% Real Pages matching frontend routes in src/App.tsx and src/data/services.ts
+ */
+const REAL_STATIC_ROUTES: StaticRoute[] = [
+  // 1. Core Landing & Main Pages
   { path: '', changefreq: 'daily', priority: '1.0' },
-  { path: 'layanan', changefreq: 'weekly', priority: '0.9' },
-  { path: 'layanan/skripsi-tesis', changefreq: 'weekly', priority: '0.9' },
-  { path: 'layanan/makalah-jurnal', changefreq: 'weekly', priority: '0.9' },
-  { path: 'layanan/olah-data-statistik', changefreq: 'weekly', priority: '0.9' },
-  { path: 'layanan/pemrograman-it', changefreq: 'weekly', priority: '0.9' },
-  { path: 'layanan/desain-presentasi', changefreq: 'weekly', priority: '0.9' },
-  { path: 'layanan/parafrase-turnitin', changefreq: 'weekly', priority: '0.9' },
-  { path: 'layanan/terjemahan-akademik', changefreq: 'weekly', priority: '0.9' },
-  { path: 'layanan/tugas-kuliah-harian', changefreq: 'weekly', priority: '0.9' },
-  { path: 'blog', changefreq: 'daily', priority: '0.9' },
-  { path: 'cara-kerja', changefreq: 'monthly', priority: '0.8' },
-  { path: 'harga', changefreq: 'monthly', priority: '0.8' },
-  { path: 'portfolio', changefreq: 'monthly', priority: '0.8' },
-  { path: 'testimoni', changefreq: 'monthly', priority: '0.8' },
+  { path: 'cara-order', changefreq: 'monthly', priority: '0.8' },
+  { path: 'portofolio', changefreq: 'weekly', priority: '0.8' },
+  { path: 'harga', changefreq: 'weekly', priority: '0.8' },
   { path: 'faq', changefreq: 'monthly', priority: '0.7' },
-  { path: 'tentang-kami', changefreq: 'monthly', priority: '0.7' },
+  { path: 'tentang', changefreq: 'monthly', priority: '0.7' },
+  { path: 'kontak', changefreq: 'monthly', priority: '0.7' },
+  { path: 'blog', changefreq: 'daily', priority: '0.9' },
+
+  // 2. 10 Real Services from src/data/services.ts
+  { path: 'layanan/joki-tugas', changefreq: 'weekly', priority: '0.9' },
+  { path: 'layanan/joki-tugas-kuliah', changefreq: 'weekly', priority: '0.9' },
+  { path: 'layanan/joki-tugas-smk', changefreq: 'weekly', priority: '0.9' },
+  { path: 'layanan/joki-tugas-sma', changefreq: 'weekly', priority: '0.9' },
+  { path: 'layanan/joki-makalah', changefreq: 'weekly', priority: '0.9' },
+  { path: 'layanan/joki-laporan', changefreq: 'weekly', priority: '0.9' },
+  { path: 'layanan/joki-laporan-pkl', changefreq: 'weekly', priority: '0.9' },
+  { path: 'layanan/joki-proposal', changefreq: 'weekly', priority: '0.9' },
+  { path: 'layanan/joki-ppt', changefreq: 'weekly', priority: '0.9' },
+  { path: 'layanan/joki-skripsi', changefreq: 'weekly', priority: '0.9' },
+
+  // 3. Real Legal & Policy Pages from src/App.tsx
   { path: 'kebijakan-privasi', changefreq: 'yearly', priority: '0.5' },
   { path: 'syarat-ketentuan', changefreq: 'yearly', priority: '0.5' },
+  { path: 'kebijakan-refund', changefreq: 'yearly', priority: '0.5' },
+  { path: 'kebijakan-revisi', changefreq: 'yearly', priority: '0.5' },
+  { path: 'kebijakan-pembatalan', changefreq: 'yearly', priority: '0.5' },
+  { path: 'kebijakan-pembayaran', changefreq: 'yearly', priority: '0.5' },
 ];
 
 function escapeXml(str: string): string {
@@ -52,13 +65,13 @@ function formatDate(isoOrDateString?: string): string {
 }
 
 /**
- * Generate Real-Time Dynamic Sitemap XML from Supabase PostgreSQL Database
+ * Generate Real-Time Dynamic Sitemap XML strictly from live frontend routes & Supabase articles
  */
 export async function generateSitemapXml(): Promise<string> {
   const BASE_URL = 'https://jokitugasku.id';
   const today = new Date().toISOString().split('T')[0];
 
-  // Fetch all live published articles from Supabase
+  // Fetch all real live published articles from Supabase PostgreSQL database
   let articles: any[] = [];
   try {
     const { data } = await supabase
@@ -77,8 +90,8 @@ export async function generateSitemapXml(): Promise<string> {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-  // 1. Static Core Pages
-  for (const route of STATIC_ROUTES) {
+  // 1. Real Static Pages (Homepage, Real Services, Real Info & Legal Pages)
+  for (const route of REAL_STATIC_ROUTES) {
     const loc = route.path ? `${BASE_URL}/${route.path}` : BASE_URL;
     xml += '  <url>\n';
     xml += `    <loc>${escapeXml(loc)}</loc>\n`;
@@ -88,7 +101,7 @@ export async function generateSitemapXml(): Promise<string> {
     xml += '  </url>\n';
   }
 
-  // 2. Dynamic Live Articles from Database
+  // 2. Real Dynamic Articles from Database
   for (const article of articles) {
     if (!article.slug) continue;
     const cleanSlug = article.slug.startsWith('/') ? article.slug.slice(1) : article.slug;
@@ -116,7 +129,7 @@ const handleSitemapRequest = async (req: Request, res: Response) => {
     res.setHeader('Expires', '0');
     return res.status(200).send(xml);
   } catch (err: any) {
-    console.error('❌ [Sitemap] Error generating sitemap:', err);
+    console.error('❌ [Sitemap] Error generating real-time sitemap:', err);
     res.setHeader('Content-Type', 'text/plain');
     return res.status(500).send('Error generating sitemap XML');
   }
